@@ -40,22 +40,14 @@
     box-shadow: var(--shadow-lg);
   }
   .header-inner {
-    max-width: 1100px; margin: 0 auto; padding: 20px 32px;
-    display: flex; align-items: center; justify-content: space-between;
+    max-width: 1100px; margin: 0 auto; padding: 16px 32px;
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
   }
-  .header-left { display: flex; align-items: center; gap: 14px; }
+  .header-left { display: flex; align-items: center; }
   .logo {
-    width: 64px; height: 64px;
     display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
   }
-  .logo img { width: 74px; height: 74px; }
-  .header h1 {
-    font-size: 20.8px; font-weight: 700; letter-spacing: -0.5px;
-    font-family: 'Space Grotesk', sans-serif;
-    color: #FDFD9D;
-    margin-top: 30px;
-  }
+  .logo img { width: 80px; height: 80px; }
   .header-right {
     display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
   }
@@ -293,11 +285,6 @@
   .login-modal-content input:focus { outline: none; border-color: #333; }
   .login-error { color: #c00; font-size: 13px; margin-bottom: 8px; display: none; }
 
-  /* View-only banner */
-  .view-banner {
-    background: #f5f5f0; text-align: center; padding: 8px; font-size: 13px;
-    color: #888; font-family: 'Space Grotesk', sans-serif; border-bottom: 1px solid #e5e5e0;
-  }
 
   @media (max-width: 768px) {
     .container { padding: 16px; }
@@ -313,11 +300,9 @@
 <div class="top-accent"></div>
 <div class="header">
   <div class="header-inner">
-    <div class="header-left">
-      <div class="logo">
-        <img src="../assets/Track-Star_logomark.svg" alt="Track Star">
-      </div>
-      <h1>Track Star</h1>
+    <div class="header-left"></div>
+    <div class="logo">
+      <img src="../assets/Track-Star_logomark.svg" alt="Track Star">
     </div>
     <div class="header-right" id="headerRight">
       <a href="#" class="auth-link" id="authLink" onclick="toggleAuth();return false">Log In</a>
@@ -325,7 +310,6 @@
   </div>
 </div>
 
-<div class="view-banner" id="viewBanner" style="display:none">Viewing as guest &mdash; <a href="#" onclick="openLoginModal();return false" style="color:#555">Log in</a> to edit</div>
 
 <div class="nav">
   <div class="nav-inner">
@@ -345,7 +329,7 @@
     <h2>Log In to Edit</h2>
     <p style="margin-bottom:16px;color:#666;font-size:14px">Sign in to add and edit time entries.</p>
     <div class="login-error" id="loginError"></div>
-    <input type="email" id="loginEmail" placeholder="Email" value="rlance@gmail.com">
+    <input type="email" id="loginEmail" placeholder="Email">
     <input type="password" id="loginPassword" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
     <div class="actions">
       <button class="btn btn-primary" onclick="doLogin()">Log In</button>
@@ -441,20 +425,17 @@ async function checkAuth() {
 
 function updateAuthUI() {
   const headerRight = document.getElementById('headerRight');
-  const banner = document.getElementById('viewBanner');
   if (isAdmin) {
     headerRight.innerHTML = `
       <span class="name">Lance &mdash; FPO Group</span>
       <span class="team">Power Platform Executive Communications</span>
       <a href="#" class="auth-link" onclick="toggleAuth();return false">Log Out</a>
     `;
-    banner.style.display = 'none';
     document.body.classList.remove('view-only');
   } else {
     headerRight.innerHTML = `
       <a href="#" class="auth-link" id="authLink" onclick="toggleAuth();return false">Log In</a>
     `;
-    banner.style.display = 'block';
     document.body.classList.add('view-only');
   }
 }
