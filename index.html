@@ -648,7 +648,7 @@ async function fetchAllData() {
       };
     });
   } catch (e) {
-    console.error('Fetch data error:', e);
+    console.error('Fetch data error:', e?.message || JSON.stringify(e));
     if (!dataCache.master) dataCache.master = [...DEFAULT_PROJECTS];
   }
 }
