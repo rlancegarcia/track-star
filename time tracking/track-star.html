@@ -853,13 +853,13 @@ function renderWeekly(app) {
     ${hasEntries ? `
     <div class="week-bottom">
       <div class="card">
-        <h2>Weekly Donut</h2>
+        <h2>Time Spent</h2>
         <div class="chart-container"><canvas id="weekDonut"></canvas></div>
         <div class="custom-legend" id="weekDonutLegend"></div>
       </div>
       <div>
         <div class="card summary-area">
-          <h2>Executive Summary</h2>
+          <h2>Weekly Summary</h2>
           <textarea placeholder="Write a brief summary of this week's focus and key accomplishments..." onchange="updateSummary(this.value)">${week.summary || ''}</textarea>
         </div>
         <div class="card summary-area">
@@ -1044,7 +1044,7 @@ function renderDashboard(app) {
   const avgUtil = weeksFilled > 0 ? Math.round((allHours / (weeksFilled * WEEKLY_HOURS)) * 100) : 0;
 
   app.innerHTML = `
-    <h2 style="font-size:18px;font-weight:700;margin-bottom:20px">Aggregate Dashboard</h2>
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:20px">Aggregate Project View</h2>
 
     <div class="stats-row">
       <div class="stat-card"><div class="stat-value">${allHours}</div><div class="stat-label">Total Hours</div></div>
@@ -1054,18 +1054,18 @@ function renderDashboard(app) {
 
     <div class="dashboard-charts">
       <div class="card">
-        <h2>Time by Project (All Weeks)</h2>
+        <h2>Time Spent (Total)</h2>
         <div class="chart-container"><canvas id="dashDonut"></canvas></div>
         <div class="custom-legend" id="dashDonutLegend"></div>
       </div>
       <div class="card">
-        <h2>Weekly Hours Trend</h2>
+        <h2>Weekly hours trend</h2>
         <div class="dashboard-chart"><canvas id="dashBar"></canvas></div>
       </div>
     </div>
 
     <div class="card" style="margin-top:20px">
-      <h2>Week-by-Week Breakdown</h2>
+      <h2>Week-by-week breakdown</h2>
       <table class="time-table">
         <thead><tr><th>Week</th><th>Dates</th><th style="text-align:center">Hours</th><th style="text-align:center">Utilization</th></tr></thead>
         <tbody>
@@ -1083,7 +1083,7 @@ function renderDashboard(app) {
 
     <div class="card" style="margin-top:20px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <h2 style="margin-bottom:0">Master Project List</h2>
+        <h2 style="margin-bottom:0">All Projects</h2>
         <button class="btn btn-outline admin-only" onclick="openAddMasterProjectModal()">+ Add Project</button>
       </div>
       <p class="admin-only" style="font-size:13px;color:#999;margin-bottom:12px">Click any project name to rename it. Changes apply everywhere.</p>
@@ -1149,7 +1149,7 @@ function renderDashboardCharts(projectTotals, weeklyTotals, master) {
       datasets: [{
         label: 'Hours',
         data: weeklyTotals.map(w => w.hours),
-        backgroundColor: weeklyTotals.map(w => w.hours >= WEEKLY_HOURS ? '#333' : w.hours >= 30 ? '#888' : '#bbb'),
+        backgroundColor: weeklyTotals.map(w => w.hours > 40 ? '#000000' : w.hours >= WEEKLY_HOURS ? '#333' : w.hours >= 30 ? '#888' : '#bbb'),
         borderRadius: 6, borderSkipped: false
       }]
     },
