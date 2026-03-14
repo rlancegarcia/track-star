@@ -55,7 +55,7 @@
     margin-top: 30px;
   }
   .header-right {
-    display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
   }
   .header-right .name {
     font-size: 14px; font-weight: 700; color: #ffffff;
@@ -64,6 +64,11 @@
     font-size: 12px; font-weight: 400; color: #3a3a3a;
     background: var(--brand-light); padding: 3px 10px; border-radius: 4px;
   }
+  .auth-link {
+    color: rgba(255,255,255,0.7); font-size: 13px; text-decoration: none;
+    font-family: 'Space Grotesk', sans-serif; transition: color 0.2s;
+  }
+  .auth-link:hover { color: #ffffff; }
 
   .nav { background: white; border-bottom: 1px solid var(--border); }
   .nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 32px; display: flex; gap: 0; }
@@ -271,13 +276,7 @@
   body.view-only .editable-name { pointer-events: none; }
   body.view-only .summary-area textarea { pointer-events: none; opacity: 0.85; background: transparent; border-color: transparent; }
 
-  /* Auth button in header */
-  .auth-btn {
-    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
-    color: white; padding: 6px 14px; border-radius: 6px; font-size: 13px;
-    font-family: 'Space Grotesk', sans-serif; cursor: pointer; transition: background 0.2s;
-  }
-  .auth-btn:hover { background: rgba(255,255,255,0.25); }
+  /* Auth link in header — handled by .auth-link above */
 
   /* Login modal */
   .login-modal-content { max-width: 340px; }
@@ -313,10 +312,8 @@
       </div>
       <h1>Track Star</h1>
     </div>
-    <div class="header-right">
-      <span class="name">Lance &mdash; FPO Group</span>
-      <span class="team">Power Platform Executive Communications</span>
-      <button class="auth-btn" id="authBtn" onclick="toggleAuth()">Log In</button>
+    <div class="header-right" id="headerRight">
+      <a href="#" class="auth-link" id="authLink" onclick="toggleAuth();return false">Log In</a>
     </div>
   </div>
 </div>
@@ -430,14 +427,20 @@ async function checkAuth() {
 }
 
 function updateAuthUI() {
-  const btn = document.getElementById('authBtn');
+  const headerRight = document.getElementById('headerRight');
   const banner = document.getElementById('viewBanner');
   if (isAdmin) {
-    btn.textContent = 'Log Out';
+    headerRight.innerHTML = `
+      <span class="name">Lance &mdash; FPO Group</span>
+      <span class="team">Power Platform Executive Communications</span>
+      <a href="#" class="auth-link" onclick="toggleAuth();return false">Log Out</a>
+    `;
     banner.style.display = 'none';
     document.body.classList.remove('view-only');
   } else {
-    btn.textContent = 'Log In';
+    headerRight.innerHTML = `
+      <a href="#" class="auth-link" id="authLink" onclick="toggleAuth();return false">Log In</a>
+    `;
     banner.style.display = 'block';
     document.body.classList.add('view-only');
   }
