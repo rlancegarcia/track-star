@@ -129,6 +129,7 @@
   .summary-area textarea {
     width: 100%; min-height: 80px; border: 1px solid var(--border); border-radius: 8px;
     padding: 12px; font-size: 14px; font-family: inherit; resize: vertical; transition: border-color 0.2s;
+    overflow: hidden;
   }
   .summary-area textarea:focus { outline: none; border-color: #333; }
 
@@ -780,11 +781,19 @@ function showView(view) {
   render();
 }
 
+function autoResizeTextareas() {
+  document.querySelectorAll('.summary-area textarea').forEach(ta => {
+    ta.style.height = 'auto';
+    ta.style.height = ta.scrollHeight + 'px';
+  });
+}
+
 function render() {
   const app = document.getElementById('app');
   if (currentView === 'weekly') renderWeekly(app);
   else if (currentView === 'dashboard') renderDashboard(app);
   else if (currentView === 'export') renderExport(app);
+  setTimeout(autoResizeTextareas, 0);
 }
 
 // ============================================================
