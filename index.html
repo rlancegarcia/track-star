@@ -45,7 +45,7 @@
   }
   .header-left { display: flex; align-items: center; }
   .logo {
-    display: flex; align-items: center; justify-content: center;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
   }
   .logo img { width: 80px; height: 80px; }
   .header-right {
@@ -302,9 +302,9 @@
 <div class="header">
   <div class="header-inner">
     <div class="header-left"></div>
-    <div class="logo">
+    <a href="#" class="logo" onclick="goHome();return false">
       <img src="assets/Track-Star_logomark.svg" alt="Track Star">
-    </div>
+    </a>
     <div class="header-right" id="headerRight">
       <a href="#" class="auth-link" id="authLink" onclick="toggleAuth();return false">Log In</a>
     </div>
@@ -771,6 +771,15 @@ function matchActivity(activityName) {
 // ============================================================
 // VIEW ROUTING
 // ============================================================
+
+function goHome() {
+  if (currentView === 'weekly' && currentWeek === getCurrentWeekIndex()) {
+    location.reload();
+  } else {
+    currentWeek = getCurrentWeekIndex();
+    showView('weekly');
+  }
+}
 
 function showView(view) {
   currentView = view;
