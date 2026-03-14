@@ -32,6 +32,8 @@
     line-height: 1.5;
   }
 
+  .top-accent { height: 4px; background: #FDFD9D; }
+
   .header {
     background: #3a3a3a;
     color: white;
@@ -71,7 +73,7 @@
   .auth-link:hover { color: #ffffff; }
 
   .nav { background: white; border-bottom: 1px solid var(--border); }
-  .nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 32px; display: flex; gap: 0; }
+  .nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 32px; display: flex; gap: 0; align-items: center; }
   .nav-inner button {
     background: none; border: none; padding: 14px 20px; font-size: 14px; font-weight: 500;
     color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent;
@@ -86,14 +88,18 @@
   .card h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary); }
 
   .week-selector {
-    display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
   }
   .week-selector button {
     background: #444; color: white; border: none; padding: 8px 16px;
     border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: background 0.2s;
+    min-width: 90px;
   }
-  .week-selector button:hover { background: #222; }
-  .week-selector .week-label { font-size: 15px; font-weight: 600; min-width: 240px; text-align: center; }
+  .week-selector button:hover:not(:disabled) { background: #222; }
+  .week-selector button:disabled {
+    background: #ccc; color: #999; cursor: not-allowed; opacity: 0.5;
+  }
+  .week-selector .week-label { font-size: 15px; font-weight: 600; text-align: center; flex: 1; }
 
   .time-table { width: 100%; border-collapse: collapse; }
   .time-table th {
@@ -304,6 +310,7 @@
 </head>
 <body>
 
+<div class="top-accent"></div>
 <div class="header">
   <div class="header-inner">
     <div class="header-left">
@@ -325,6 +332,7 @@
     <button class="active" onclick="showView('weekly')">Weekly View</button>
     <button onclick="showView('dashboard')">Dashboard</button>
     <button onclick="showView('export')">Export / Share</button>
+    <button class="admin-only" onclick="openPasteModal()" style="margin-left:auto;color:var(--text-secondary)">Copy from Daily</button>
   </div>
 </div>
 
@@ -421,8 +429,13 @@ const dataCache = { master: null, weeks: {} };
 // ============================================================
 
 async function checkAuth() {
-  const { data: { session } } = await supabase.auth.getSession();
-  isAdmin = !!session;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    isAdmin = !!session;
+  } catch (e) {
+    console.error('Auth check error:', e);
+    isAdmin = false;
+  }
   updateAuthUI();
 }
 
@@ -609,28 +622,35 @@ function getTotalWeeks() {
 // ============================================================
 
 async function fetchAllData() {
-  const { data: projects } = await supabase.from('master_projects').select('*').order('name');
-  dataCache.master = (projects && projects.length > 0)
-    ? projects.map(p => ({ id: p.id, name: p.name }))
-    : [...DEFAULT_PROJECTS];
+  try {
+    const { data: projects, error: pErr } = await supabase.from('master_projects').select('*').order('name');
+    if (pErr) throw pErr;
+    dataCache.master = (projects && projects.length > 0)
+      ? projects.map(p => ({ id: p.id, name: p.name }))
+      : [...DEFAULT_PROJECTS];
 
-  // If DB was empty, seed defaults (only if admin)
-  if ((!projects || projects.length === 0) && isAdmin) {
-    await supabase.from('master_projects').upsert(
-      DEFAULT_PROJECTS.map(p => ({ id: p.id, name: p.name })),
-      { onConflict: 'id' }
-    );
+    // If DB was empty, seed defaults (only if admin)
+    if ((!projects || projects.length === 0) && isAdmin) {
+      await supabase.from('master_projects').upsert(
+        DEFAULT_PROJECTS.map(p => ({ id: p.id, name: p.name })),
+        { onConflict: 'id' }
+      );
+    }
+
+    const { data: weeks, error: wErr } = await supabase.from('week_data').select('*');
+    if (wErr) throw wErr;
+    dataCache.weeks = {};
+    (weeks || []).forEach(w => {
+      dataCache.weeks[`week_${w.week_index}`] = {
+        entries: w.entries || [],
+        summary: w.summary || '',
+        fileLinks: w.file_links || ''
+      };
+    });
+  } catch (e) {
+    console.error('Fetch data error:', e);
+    if (!dataCache.master) dataCache.master = [...DEFAULT_PROJECTS];
   }
-
-  const { data: weeks } = await supabase.from('week_data').select('*');
-  dataCache.weeks = {};
-  (weeks || []).forEach(w => {
-    dataCache.weeks[`week_${w.week_index}`] = {
-      entries: w.entries || [],
-      summary: w.summary || '',
-      fileLinks: w.file_links || ''
-    };
-  });
 }
 
 function getMasterList() {
@@ -801,10 +821,9 @@ function renderWeekly(app) {
 
   app.innerHTML = `
     <div class="week-selector">
-      <button onclick="prevWeek()">&larr; Prev</button>
+      <button onclick="prevWeek()" ${currentWeek <= 0 ? 'disabled' : ''}>&larr; Prev</button>
       <div class="week-label">Week ${currentWeek + 1}: ${formatDate(ws)} &mdash; ${formatDate(we)}</div>
-      <button onclick="nextWeek()">Next &rarr;</button>
-      <button class="btn btn-outline admin-only" style="margin-left:auto" onclick="openPasteModal()">Paste from Daily</button>
+      <button onclick="nextWeek()" ${currentWeek >= getCurrentWeekIndex() ? 'disabled' : ''}>Next &rarr;</button>
     </div>
 
     <div class="stats-row">
@@ -1245,9 +1264,9 @@ function renderExport(app) {
 
   app.innerHTML = `
     <div class="week-selector">
-      <button onclick="currentWeek=Math.max(0,currentWeek-1);render()">&larr; Prev</button>
+      <button onclick="currentWeek=Math.max(0,currentWeek-1);render()" ${currentWeek <= 0 ? 'disabled' : ''}>&larr; Prev</button>
       <div class="week-label">Week ${currentWeek + 1}: ${formatDate(ws)} &mdash; ${formatDate(we)}</div>
-      <button onclick="currentWeek=Math.min(getCurrentWeekIndex(),currentWeek+1);render()">Next &rarr;</button>
+      <button onclick="currentWeek=Math.min(getCurrentWeekIndex(),currentWeek+1);render()" ${currentWeek >= getCurrentWeekIndex() ? 'disabled' : ''}>Next &rarr;</button>
     </div>
     <div class="card">
       <h2>Report Preview</h2>
@@ -1427,11 +1446,17 @@ function escapeHtml(str) {
 Chart.defaults.font.family = "'Space Mono', monospace";
 
 (async function init() {
-  // Check if user is already logged in
-  await checkAuth();
-  // Load all data from Supabase
-  await fetchAllData();
-  // Render the app
+  try {
+    // Check if user is already logged in
+    await checkAuth();
+    // Load all data from Supabase
+    await fetchAllData();
+  } catch (e) {
+    console.error('Init error:', e);
+    // Fallback: use defaults so page still renders
+    if (!dataCache.master) dataCache.master = [...DEFAULT_PROJECTS];
+  }
+  // Always render the app, even if Supabase fails
   render();
 })();
 </script>
