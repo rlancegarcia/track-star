@@ -839,7 +839,7 @@ function renderWeekly(app) {
       ${hasEntries ? `
       <table class="time-table">
         <thead>
-          <tr><th style="width:28%">Project Area</th><th>Description</th><th style="width:90px;text-align:center">Hours</th><th style="width:40px"></th></tr>
+          <tr><th style="width:28%">Project Area</th><th style="padding-left:10px">Description</th><th style="width:90px;text-align:center">Hours</th><th style="width:40px"></th></tr>
         </thead>
         <tbody>
           ${week.entries.map((entry, i) => {
@@ -848,14 +848,14 @@ function renderWeekly(app) {
             return `<tr>
               <td class="project-name"><span class="project-dot" style="background:${getProjectColor(entry.id)}"></span>${name}</td>
               <td><textarea onchange="updateEntry(${i},'description',this.value)" oninput="autoGrow(this)">${entry.description || ''}</textarea></td>
-              <td><input type="number" min="0" max="40" step="0.5" value="${entry.hours || ''}" onchange="updateEntry(${i},'hours',this.value)" placeholder="0"></td>
+              <td style="text-align:center"><input type="number" min="0" max="40" step="0.5" value="${entry.hours || ''}" onchange="updateEntry(${i},'hours',this.value)" placeholder="0"></td>
               <td class="admin-only"><button class="remove-btn" onclick="removeWeekEntry('${entry.id}')" title="Remove from this week">&times;</button></td>
             </tr>`;
           }).join('')}
           <tr class="total-row">
             <td>Total</td>
             <td></td>
-            <td style="text-align:center">${totalHours} hrs</td>
+            <td style="text-align:center;padding-right:0">${totalHours} hrs</td>
             <td></td>
           </tr>
         </tbody>
@@ -887,9 +887,12 @@ function renderWeekly(app) {
       </div>
     </div>
 
-    <div class="actions">
-      <button class="btn btn-primary admin-only" onclick="toast('Week saved!')">Save Week</button>
-      <button class="btn btn-secondary" onclick="copyWeekReport()">Copy Report to Clipboard</button>
+    <div class="actions" style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <button class="btn btn-primary admin-only" onclick="toast('Week saved!')">Save Week</button>
+        <button class="btn btn-secondary" onclick="copyWeekReport()">Copy Report to Clipboard</button>
+      </div>
+      <span style="font-size:12px;color:var(--text-secondary);font-family:'Space Grotesk',sans-serif">&copy; R. Lance Garcia</span>
     </div>
     ` : ''}
   `;
@@ -1078,7 +1081,7 @@ function renderDashboard(app) {
       </div>
       <div class="card">
         <h2>Weekly hours trend</h2>
-        <div class="dashboard-chart"><canvas id="dashBar"></canvas></div>
+        <div class="dashboard-chart" style="max-height:320px;overflow-y:auto"><canvas id="dashBar"></canvas></div>
       </div>
     </div>
 
@@ -1160,24 +1163,32 @@ function renderDashboardCharts(projectTotals, weeklyTotals, master) {
   const barCanvas = document.getElementById('dashBar');
   if (dashboardBarChart) dashboardBarChart.destroy();
 
+  const reversedTotals = [...weeklyTotals].reverse();
+  const barHeight = 40;
+  const chartHeight = Math.max(200, reversedTotals.length * (barHeight + 12) + 40);
+  barCanvas.parentElement.style.height = chartHeight + 'px';
+  barCanvas.style.height = chartHeight + 'px';
+
   dashboardBarChart = new Chart(barCanvas, {
     type: 'bar',
     data: {
-      labels: weeklyTotals.map(w => `Wk ${w.week}`),
+      labels: reversedTotals.map(w => `Wk ${w.week}`),
       datasets: [{
         label: 'Hours',
-        data: weeklyTotals.map(w => w.hours),
-        backgroundColor: weeklyTotals.map(w => w.hours > 40 ? '#000000' : w.hours >= WEEKLY_HOURS ? '#333' : w.hours >= 30 ? '#888' : '#bbb'),
-        borderRadius: 6, borderSkipped: false
+        data: reversedTotals.map(w => w.hours),
+        backgroundColor: reversedTotals.map(w => w.hours > 40 ? '#000000' : w.hours >= WEEKLY_HOURS ? '#333' : w.hours >= 30 ? '#888' : '#bbb'),
+        borderRadius: 6, borderSkipped: false,
+        barThickness: barHeight
       }]
     },
     options: {
+      indexAxis: 'y',
       responsive: true, maintainAspectRatio: false,
       scales: {
-        y: { beginAtZero: true, max: 50, ticks: { stepSize: 10, color: '#999' }, grid: { color: '#eee' } },
-        x: { grid: { display: false }, ticks: { color: '#999' } }
+        x: { beginAtZero: true, max: 50, ticks: { stepSize: 10, color: '#999' }, grid: { color: '#eee' } },
+        y: { grid: { display: false }, ticks: { color: '#999' } }
       },
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.parsed.y} hours` } } }
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.parsed.x} hours` } } }
     }
   });
 }
