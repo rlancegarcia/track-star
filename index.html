@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Track Star — Weekly Time Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --brand-primary: #333333;
+    --brand-accent: #222222;
+    --brand-secondary: #555555;
+    --brand-light: #EEEEE9;
+    --text-primary: #111111;
+    --text-secondary: #777777;
+    --border: #ddd;
+    --card-bg: #ffffff;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-lg: 0 4px 14px rgba(0,0,0,0.08);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--brand-light);
+    color: var(--text-primary);
+    line-height: 1.5;
+  }
+
+  .header {
+    background: #3a3a3a;
+    color: white;
+    box-shadow: var(--shadow-lg);
+  }
+  .header-inner {
+    max-width: 1100px; margin: 0 auto; padding: 20px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .logo {
+    width: 64px; height: 64px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .logo img { width: 74px; height: 74px; }
+  .header h1 {
+    font-size: 20.8px; font-weight: 700; letter-spacing: -0.5px;
+    font-family: 'Space Grotesk', sans-serif;
+    color: #FDFD9D;
+    margin-top: 30px;
+  }
+  .header-right {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+  }
+  .header-right .name {
+    font-size: 14px; font-weight: 700; color: #ffffff;
+  }
+  .header-right .team {
+    font-size: 12px; font-weight: 400; color: #3a3a3a;
+    background: var(--brand-light); padding: 3px 10px; border-radius: 4px;
+  }
+
+  .nav { background: white; border-bottom: 1px solid var(--border); }
+  .nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 32px; display: flex; gap: 0; }
+  .nav-inner button {
+    background: none; border: none; padding: 14px 20px; font-size: 14px; font-weight: 500;
+    color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .nav-inner button:hover { color: var(--text-primary); }
+  .nav-inner button.active { color: var(--text-primary); border-bottom-color: #333; font-weight: 600; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px 32px; }
+  .card { background: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow); padding: 24px; margin-bottom: 20px; }
+  .card h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text-primary); }
+  .card h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary); }
+
+  .week-selector {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+  }
+  .week-selector button {
+    background: #444; color: white; border: none; padding: 8px 16px;
+    border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: background 0.2s;
+  }
+  .week-selector button:hover { background: #222; }
+  .week-selector .week-label { font-size: 15px; font-weight: 600; min-width: 240px; text-align: center; }
+
+  .time-table { width: 100%; border-collapse: collapse; }
+  .time-table th {
+    text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--text-secondary); border-bottom: 2px solid var(--border);
+    font-weight: 600;
+  }
+  .time-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: top; font-family: 'Space Mono', monospace; }
+  .time-table tr:last-child td { border-bottom: none; }
+  .time-table .project-name { font-weight: 600; white-space: nowrap; font-family: 'Space Grotesk', sans-serif; }
+  .time-table .project-dot {
+    display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px;
+    vertical-align: middle;
+  }
+  .time-table textarea {
+    width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px;
+    font-size: 13px; font-family: 'Space Grotesk', sans-serif; resize: none; transition: border-color 0.2s;
+    overflow: hidden; min-height: 34px;
+  }
+  .time-table textarea:focus { outline: none; border-color: #333; }
+  .time-table input[type="number"] {
+    width: 70px; border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px;
+    font-size: 14px; text-align: center; font-weight: 700; font-family: 'Space Mono', monospace; transition: border-color 0.2s;
+  }
+  .time-table input[type="number"]:focus { outline: none; border-color: #333; }
+
+  .total-row td { font-weight: 700; border-top: 2px solid #333; font-size: 15px; font-family: 'Space Mono', monospace; }
+
+  .remove-btn {
+    background: none; border: none; cursor: pointer; color: #bbb; font-size: 16px;
+    padding: 4px 8px; border-radius: 4px; transition: color 0.2s;
+  }
+  .remove-btn:hover { color: #c00; }
+
+  .summary-area textarea {
+    width: 100%; min-height: 80px; border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px; font-size: 14px; font-family: inherit; resize: vertical; transition: border-color 0.2s;
+  }
+  .summary-area textarea:focus { outline: none; border-color: #333; }
+
+  .week-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .chart-container { display: flex; justify-content: center; align-items: center; padding: 10px; }
+  .chart-container canvas { max-width: 260px; max-height: 260px; }
+
+  .custom-legend {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px;
+    padding: 8px 4px 0; font-size: 12px; color: #333;
+  }
+  .custom-legend.single-col { grid-template-columns: 1fr; }
+  .custom-legend-item {
+    display: flex; align-items: center; gap: 8px; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .custom-legend-item .swatch {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  }
+  .custom-legend-item .label {
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .custom-legend-item .hrs {
+    color: #999; margin-left: auto; flex-shrink: 0; font-size: 11px; font-family: 'Space Mono', monospace;
+  }
+
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+  .stat-card {
+    background: white; border-radius: 12px; box-shadow: var(--shadow); padding: 18px 20px; text-align: center;
+  }
+  .stat-card .stat-value { font-size: 28px; font-weight: 700; color: #111; font-family: 'Space Mono', monospace; }
+  .stat-card .stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .dashboard-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .dashboard-chart canvas { width: 100% !important; max-height: 320px; }
+
+  .actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+  .btn {
+    padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    cursor: pointer; border: none; transition: all 0.2s;
+  }
+  .btn-primary { background: #333; color: white; }
+  .btn-primary:hover { background: #111; }
+  .btn-secondary { background: #666; color: white; }
+  .btn-secondary:hover { background: #444; }
+  .btn-outline { background: white; color: #333; border: 1px solid var(--border); }
+  .btn-outline:hover { background: #f0f0f0; }
+
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; background: #222;
+    color: white; padding: 12px 20px; border-radius: 10px; font-size: 14px;
+    box-shadow: var(--shadow-lg); opacity: 0; transform: translateY(10px);
+    transition: all 0.3s; z-index: 1000; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4); z-index: 500; align-items: center; justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: white; border-radius: 16px; padding: 28px; max-width: 560px; width: 90%;
+    box-shadow: var(--shadow-lg); max-height: 90vh; overflow-y: auto;
+  }
+  .modal h2 { margin-bottom: 8px; }
+  .modal p { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; }
+  .modal textarea {
+    width: 100%; min-height: 180px; border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px; font-size: 13px; font-family: 'Space Mono', monospace;
+    resize: vertical;
+  }
+  .modal textarea:focus { outline: none; border-color: #333; }
+  .modal .actions { margin-top: 14px; }
+  .modal input[type="text"] {
+    width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px;
+    font-size: 14px; font-family: inherit; margin-bottom: 12px;
+  }
+  .modal input[type="text"]:focus { outline: none; border-color: #333; }
+
+  /* Project picker list inside modal */
+  .project-picker { list-style: none; max-height: 320px; overflow-y: auto; }
+  .project-picker li {
+    display: flex; align-items: center; gap: 10px; padding: 10px 8px;
+    border-bottom: 1px solid #eee; cursor: pointer; border-radius: 6px; transition: background 0.15s;
+  }
+  .project-picker li:hover { background: #f5f5f5; }
+  .project-picker li .dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  }
+  .project-picker li .name { font-weight: 500; font-size: 14px; }
+
+  .unmatched-item {
+    display: flex; align-items: center; gap: 12px; padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .unmatched-item:last-child { border-bottom: none; }
+  .unmatched-item .activity-name { font-weight: 600; flex: 1; }
+  .unmatched-item .activity-hours { font-size: 13px; color: #777; min-width: 50px; }
+  .unmatched-item select {
+    border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-size: 13px;
+    min-width: 200px;
+  }
+
+  .export-preview {
+    background: #fafafa; border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px; font-size: 13px; white-space: pre-wrap; font-family: 'Space Mono', monospace;
+    max-height: 400px; overflow-y: auto; line-height: 1.6;
+  }
+
+  .empty-state {
+    text-align: center; padding: 40px 20px; color: #999;
+  }
+  .empty-state p { margin-bottom: 16px; font-size: 14px; }
+
+  /* Master list on dashboard */
+  .master-list { list-style: none; }
+  .master-list li {
+    display: flex; align-items: center; gap: 10px; padding: 8px 0;
+    border-bottom: 1px solid #eee; font-size: 14px;
+  }
+  .master-list li:last-child { border-bottom: none; }
+  .master-list li .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .master-list li .name { flex: 1; font-weight: 500; }
+  .master-list li .editable-name {
+    cursor: text; padding: 2px 6px; border-radius: 4px; border: 1px solid transparent;
+    transition: border-color 0.2s, background 0.2s; outline: none;
+  }
+  .master-list li .editable-name:hover { border-color: #ddd; }
+  .master-list li .editable-name:focus { border-color: #333; background: #fafafa; }
+  .master-list li .remove-master {
+    background: none; border: none; cursor: pointer; color: #ccc; font-size: 14px;
+    padding: 2px 6px; border-radius: 4px; transition: color 0.2s;
+  }
+  .master-list li .remove-master:hover { color: #c00; }
+
+  @media (max-width: 768px) {
+    .container { padding: 16px; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .week-bottom, .dashboard-charts { grid-template-columns: 1fr; }
+    .header-inner { padding: 16px; }
+    .nav-inner { padding: 0 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="header-left">
+      <div class="logo">
+        <img src="assets/Track-Star_logomark.svg" alt="Track Star">
+      </div>
+      <h1>Track Star</h1>
+    </div>
+    <div class="header-right">
+      <span class="name">Lance &mdash; FPO Group</span>
+      <span class="team">Power Platform Executive Communications</span>
+    </div>
+  </div>
+</div>
+
+<div class="nav">
+  <div class="nav-inner">
+    <button class="active" onclick="showView('weekly')">Weekly View</button>
+    <button onclick="showView('dashboard')">Dashboard</button>
+    <button onclick="showView('export')">Export / Share</button>
+  </div>
+</div>
+
+<div class="container" id="app"></div>
+<div class="toast" id="toast"></div>
+
+<!-- Paste from Daily Modal -->
+<div class="modal-overlay" id="pasteModal">
+  <div class="modal">
+    <h2>Paste from Daily</h2>
+    <p>Paste your Daily app JSON export. Track Star will match activities to your master project list and apply the hours.</p>
+    <textarea id="pasteInput" placeholder='[{"activity":"Shell EC1","duration":2.75},{"activity":"MVP Summit","duration":0.75}]'></textarea>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="parseDailyPaste()">Import</button>
+      <button class="btn btn-outline" onclick="closePasteModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Unmatched Activities Modal -->
+<div class="modal-overlay" id="unmatchedModal">
+  <div class="modal">
+    <h2>Unmatched Activities</h2>
+    <p>These activities couldn't be auto-matched. Assign them to a project, add as new, or skip.</p>
+    <div id="unmatchedList"></div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="resolveUnmatched()">Apply</button>
+      <button class="btn btn-outline" onclick="closeUnmatchedModal()">Skip All</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Entry to Week (pick from master list) -->
+<div class="modal-overlay" id="addEntryModal">
+  <div class="modal">
+    <h2>Add Entry</h2>
+    <p>Pick a project from your master list to add to this week.</p>
+    <ul class="project-picker" id="projectPickerList"></ul>
+    <div style="border-top:1px solid #eee;margin-top:12px;padding-top:12px">
+      <p style="margin-bottom:8px;font-weight:600;color:#333">Or create a new project:</p>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="newProjectInline" placeholder="New project name..." style="flex:1;margin-bottom:0">
+        <button class="btn btn-primary" onclick="addNewProjectAndEntry()">Add</button>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-outline" onclick="closeAddEntryModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Project to Master List (from dashboard) -->
+<div class="modal-overlay" id="addMasterProjectModal">
+  <div class="modal">
+    <h2>Add to Master List</h2>
+    <p>Enter a name for the new project. It will be available to add to any week.</p>
+    <input type="text" id="newMasterProjectName" placeholder="e.g. Customer Story: Contoso">
+    <div class="actions">
+      <button class="btn btn-primary" onclick="confirmAddMasterProject()">Add Project</button>
+      <button class="btn btn-outline" onclick="closeAddMasterProjectModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA MODEL
+// ============================================================
+
+const GRAY_PALETTE = [
+  '#222222', '#555555', '#888888', '#aaaaaa', '#cccccc',
+  '#333333', '#666666', '#999999', '#bbbbbb', '#444444',
+  '#777777', '#dddddd', '#111111', '#3a3a3a', '#6a6a6a',
+];
+
+const DEFAULT_PROJECTS = [
+  { id: 'shell-ec-one', name: 'Shell EC One' },
+  { id: 'gov-summit', name: 'Gov Biz Apps & Copilot Summit' },
+  { id: 'mvp-summit', name: 'MVP Summit' },
+  { id: 'ai-tour', name: 'AI Tour (London & Munich)' },
+  { id: 'cs-wells-fargo', name: 'Customer Story: Wells Fargo' },
+  { id: 'cs-frp', name: 'Customer Story: FRP' },
+  { id: 'cs-telefonica', name: 'Customer Story: Telefonica' },
+  { id: 'cs-encino', name: 'Customer Story: Encino Energy' },
+  { id: 'cs-shell', name: 'Customer Story: Shell' },
+  { id: 'cs-virgin', name: 'Customer Story: Virgin Money' },
+  { id: 'cs-nasa', name: 'Customer Story: NASA' },
+  { id: 'cs-dow', name: 'Customer Story: Dow' },
+  { id: 'team-comms', name: 'Team Communications' },
+];
+
+function getProjectColor(id) {
+  const all = getMasterList();
+  const idx = all.findIndex(p => p.id === id);
+  return GRAY_PALETTE[(idx >= 0 ? idx : 0) % GRAY_PALETTE.length];
+}
+
+const START_DATE = new Date(2026, 1, 2);
+const WEEKLY_HOURS = 40;
+
+function getWeekNumber(date) {
+  const d = new Date(date);
+  const start = new Date(START_DATE);
+  return Math.max(0, Math.floor((d - start) / (7 * 24 * 60 * 60 * 1000)));
+}
+function getWeekStart(weekIndex) {
+  const d = new Date(START_DATE);
+  d.setDate(d.getDate() + weekIndex * 7);
+  return d;
+}
+function getWeekEnd(weekIndex) {
+  const d = getWeekStart(weekIndex);
+  d.setDate(d.getDate() + 4);
+  return d;
+}
+function formatDate(d) {
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function getCurrentWeekIndex() {
+  return getWeekNumber(new Date());
+}
+function getTotalWeeks() {
+  return getCurrentWeekIndex() + 1;
+}
+
+// ============================================================
+// STORAGE — MASTER LIST
+// ============================================================
+
+function getMasterList() {
+  try {
+    const raw = localStorage.getItem('trackstar_master');
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  // First run: seed with defaults
+  saveMasterList(DEFAULT_PROJECTS);
+  return [...DEFAULT_PROJECTS];
+}
+
+function saveMasterList(list) {
+  localStorage.setItem('trackstar_master', JSON.stringify(list));
+}
+
+function addToMasterList(name) {
+  const list = getMasterList();
+  const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '').replace(/^-+/, '');
+  if (list.find(p => p.id === id)) return id;
+  list.push({ id, name });
+  saveMasterList(list);
+  return id;
+}
+
+function renameProject(oldId, newName) {
+  newName = newName.trim();
+  if (!newName) return;
+  const list = getMasterList();
+  const proj = list.find(p => p.id === oldId);
+  if (proj) {
+    proj.name = newName;
+    saveMasterList(list);
+  }
+}
+
+function removeFromMasterList(id) {
+  const list = getMasterList().filter(p => p.id !== id);
+  saveMasterList(list);
+  // Also remove from all weeks
+  const data = loadData();
+  for (const key of Object.keys(data)) {
+    if (key.startsWith('week_') && data[key].entries) {
+      data[key].entries = data[key].entries.filter(e => e.id !== id);
+    }
+  }
+  saveData(data);
+}
+
+// ============================================================
+// STORAGE — WEEK DATA (blank slate)
+// ============================================================
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem('trackstar_data');
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+function saveData(data) {
+  localStorage.setItem('trackstar_data', JSON.stringify(data));
+}
+
+function getWeekData(weekIndex) {
+  const data = loadData();
+  const key = `week_${weekIndex}`;
+  if (!data[key]) {
+    data[key] = { entries: [], summary: '', fileLinks: '' };
+    saveData(data);
+  }
+  return data[key];
+}
+
+function setWeekData(weekIndex, weekData) {
+  const data = loadData();
+  data[`week_${weekIndex}`] = weekData;
+  saveData(data);
+}
+
+function addEntryToWeek(weekIndex, projectId) {
+  const week = getWeekData(weekIndex);
+  if (week.entries.find(e => e.id === projectId)) return; // already there
+  week.entries.push({ id: projectId, description: '', hours: 0 });
+  setWeekData(weekIndex, week);
+}
+
+function removeEntryFromWeek(weekIndex, projectId) {
+  const week = getWeekData(weekIndex);
+  week.entries = week.entries.filter(e => e.id !== projectId);
+  setWeekData(weekIndex, week);
+}
+
+// ============================================================
+// STATE
+// ============================================================
+
+let currentView = 'weekly';
+let currentWeek = getCurrentWeekIndex();
+let donutChart = null;
+let dashboardDonutChart = null;
+let dashboardBarChart = null;
+let pendingUnmatched = [];
+
+// ============================================================
+// KEYWORD MATCHING
+// ============================================================
+
+function getKeywordMap() {
+  const base = {
+    'shell-ec-one': ['shell ec one', 'shell ec1', 'ec one', 'ec1'],
+    'gov-summit': ['gov', 'government', 'biz apps', 'copilot summit', 'gov summit'],
+    'mvp-summit': ['mvp'],
+    'ai-tour': ['ai tour', 'london', 'munich'],
+    'cs-wells-fargo': ['wells fargo', 'wells'],
+    'cs-frp': ['frp'],
+    'cs-telefonica': ['telefonica'],
+    'cs-encino': ['encino'],
+    'cs-shell': ['shell customer', 'cs shell', 'customer story shell', 'shell story'],
+    'cs-virgin': ['virgin'],
+    'cs-nasa': ['nasa'],
+    'cs-dow': ['dow'],
+    'team-comms': ['team', 'meeting', 'standup', 'email', 'slack', 'teams', 'comms', 'sync', 'check-in', '1:1', 'one on one', 'team communication']
+  };
+  // Also add all master list items by name
+  getMasterList().forEach(p => {
+    if (!base[p.id]) base[p.id] = [p.name.toLowerCase()];
+  });
+  return base;
+}
+
+function matchActivity(activityName) {
+  const lower = activityName.toLowerCase().trim();
+  const keywords = getKeywordMap();
+  let bestMatch = null;
+  for (const [id, kws] of Object.entries(keywords)) {
+    for (const kw of kws) {
+      if (lower.includes(kw) || kw.includes(lower)) {
+        if (!bestMatch || kw.length > bestMatch.kwLen) {
+          bestMatch = { id, kwLen: kw.length };
+        }
+      }
+    }
+  }
+  return bestMatch ? bestMatch.id : null;
+}
+
+// ============================================================
+// VIEW ROUTING
+// ============================================================
+
+function showView(view) {
+  currentView = view;
+  document.querySelectorAll('.nav-inner button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.nav-inner button').forEach(b => {
+    if (b.textContent.toLowerCase().includes(view === 'export' ? 'export' : view)) b.classList.add('active');
+  });
+  render();
+}
+
+function render() {
+  const app = document.getElementById('app');
+  if (currentView === 'weekly') renderWeekly(app);
+  else if (currentView === 'dashboard') renderDashboard(app);
+  else if (currentView === 'export') renderExport(app);
+}
+
+// ============================================================
+// WEEKLY VIEW — BLANK SLATE
+// ============================================================
+
+function renderWeekly(app) {
+  const week = getWeekData(currentWeek);
+  const master = getMasterList();
+  const ws = getWeekStart(currentWeek);
+  const we = getWeekEnd(currentWeek);
+  const totalHours = week.entries.reduce((s, e) => s + (parseFloat(e.hours) || 0), 0);
+  const utilization = Math.round((totalHours / WEEKLY_HOURS) * 100);
+  const hasEntries = week.entries.length > 0;
+
+  app.innerHTML = `
+    <div class="week-selector">
+      <button onclick="prevWeek()">&larr; Prev</button>
+      <div class="week-label">Week ${currentWeek + 1}: ${formatDate(ws)} &mdash; ${formatDate(we)}</div>
+      <button onclick="nextWeek()">Next &rarr;</button>
+      <button class="btn btn-outline" style="margin-left:auto" onclick="openPasteModal()">Paste from Daily</button>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-value">${totalHours}</div><div class="stat-label">Hours Logged</div></div>
+      <div class="stat-card"><div class="stat-value">${WEEKLY_HOURS - totalHours}</div><div class="stat-label">Hours Remaining</div></div>
+      <div class="stat-card"><div class="stat-value">${utilization}%</div><div class="stat-label">Utilization</div></div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <h2 style="margin-bottom:0">Time Entries</h2>
+        <button class="btn btn-outline" onclick="openAddEntryModal()">+ Add Entry</button>
+      </div>
+      ${hasEntries ? `
+      <table class="time-table">
+        <thead>
+          <tr><th style="width:28%">Project Area</th><th>Description</th><th style="width:90px;text-align:center">Hours</th><th style="width:40px"></th></tr>
+        </thead>
+        <tbody>
+          ${week.entries.map((entry, i) => {
+            const proj = master.find(p => p.id === entry.id);
+            const name = proj ? proj.name : entry.id;
+            return `<tr>
+              <td class="project-name"><span class="project-dot" style="background:${getProjectColor(entry.id)}"></span>${name}</td>
+              <td><textarea onchange="updateEntry(${i},'description',this.value)" oninput="autoGrow(this)">${entry.description || ''}</textarea></td>
+              <td><input type="number" min="0" max="40" step="0.5" value="${entry.hours || ''}" onchange="updateEntry(${i},'hours',this.value)" placeholder="0"></td>
+              <td><button class="remove-btn" onclick="removeWeekEntry('${entry.id}')" title="Remove from this week">&times;</button></td>
+            </tr>`;
+          }).join('')}
+          <tr class="total-row">
+            <td>Total</td>
+            <td></td>
+            <td style="text-align:center">${totalHours} hrs</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+      ` : `
+      <div class="empty-state">
+        <p>No entries yet this week. Add projects you worked on, or paste from Daily.</p>
+        <button class="btn btn-primary" onclick="openAddEntryModal()">+ Add Entry</button>
+      </div>
+      `}
+    </div>
+
+    ${hasEntries ? `
+    <div class="week-bottom">
+      <div class="card">
+        <h2>Weekly Donut</h2>
+        <div class="chart-container"><canvas id="weekDonut"></canvas></div>
+        <div class="custom-legend" id="weekDonutLegend"></div>
+      </div>
+      <div>
+        <div class="card summary-area">
+          <h2>Executive Summary</h2>
+          <textarea placeholder="Write a brief summary of this week's focus and key accomplishments..." onchange="updateSummary(this.value)">${week.summary || ''}</textarea>
+        </div>
+        <div class="card summary-area">
+          <h3>File Links</h3>
+          <textarea placeholder="Paste links to deliverables, documents, or assets..." onchange="updateFileLinks(this.value)" rows="3">${week.fileLinks || ''}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" onclick="toast('Week saved!')">Save Week</button>
+      <button class="btn btn-secondary" onclick="copyWeekReport()">Copy Report to Clipboard</button>
+    </div>
+    ` : ''}
+  `;
+
+  if (hasEntries) renderWeekDonut(week);
+  document.querySelectorAll('.time-table textarea').forEach(ta => autoGrow(ta));
+}
+
+function renderWeekDonut(week) {
+  const canvas = document.getElementById('weekDonut');
+  const legendEl = document.getElementById('weekDonutLegend');
+  if (!canvas) return;
+  if (donutChart) donutChart.destroy();
+
+  const master = getMasterList();
+  const active = week.entries.filter(e => (parseFloat(e.hours) || 0) > 0);
+  if (active.length === 0) {
+    const ctx = canvas.getContext('2d');
+    ctx.font = '14px system-ui';
+    ctx.fillStyle = '#aaa';
+    ctx.textAlign = 'center';
+    ctx.fillText('No hours logged yet', canvas.width / 2, canvas.height / 2);
+    if (legendEl) legendEl.innerHTML = '';
+    return;
+  }
+
+  // Sort by hours descending
+  const sorted = [...active].sort((a, b) => (parseFloat(b.hours) || 0) - (parseFloat(a.hours) || 0));
+  const labels = sorted.map(e => { const p = master.find(p => p.id === e.id); return p ? p.name : e.id; });
+  const values = sorted.map(e => parseFloat(e.hours));
+  const colors = sorted.map(e => getProjectColor(e.id));
+
+  donutChart = new Chart(canvas, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+    options: {
+      cutout: '55%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.parsed} hrs` } }
+      },
+      responsive: true, maintainAspectRatio: true
+    }
+  });
+
+  // Custom legend
+  if (legendEl) renderCustomLegend(legendEl, labels, colors, values);
+}
+
+function renderCustomLegend(el, labels, colors, values) {
+  const count = labels.length;
+  const useSingleCol = count <= 6;
+  el.className = 'custom-legend' + (useSingleCol ? ' single-col' : '');
+
+  // Max 12 items (6 per column)
+  const maxItems = 12;
+  const items = labels.slice(0, maxItems).map((label, i) =>
+    `<div class="custom-legend-item">
+      <span class="swatch" style="background:${colors[i]}"></span>
+      <span class="label">${escapeHtml(label)}</span>
+      <span class="hrs">${values[i]}h</span>
+    </div>`
+  );
+  el.innerHTML = items.join('');
+}
+
+function autoGrow(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+function updateEntry(index, field, value) {
+  const week = getWeekData(currentWeek);
+  if (field === 'hours') value = parseFloat(value) || 0;
+  week.entries[index][field] = value;
+  setWeekData(currentWeek, week);
+  if (field === 'hours') render();
+}
+function updateSummary(value) {
+  const week = getWeekData(currentWeek);
+  week.summary = value;
+  setWeekData(currentWeek, week);
+}
+function updateFileLinks(value) {
+  const week = getWeekData(currentWeek);
+  week.fileLinks = value;
+  setWeekData(currentWeek, week);
+}
+
+function removeWeekEntry(projectId) {
+  removeEntryFromWeek(currentWeek, projectId);
+  render();
+}
+
+function prevWeek() { if (currentWeek > 0) { currentWeek--; render(); } }
+function nextWeek() { if (currentWeek < getCurrentWeekIndex()) { currentWeek++; render(); } }
+
+// ============================================================
+// ADD ENTRY MODAL (pick from master list)
+// ============================================================
+
+function openAddEntryModal() {
+  const master = getMasterList();
+  const week = getWeekData(currentWeek);
+  const usedIds = new Set(week.entries.map(e => e.id));
+  const available = master.filter(p => !usedIds.has(p.id));
+
+  const list = document.getElementById('projectPickerList');
+  if (available.length > 0) {
+    list.innerHTML = available.sort((a, b) => a.name.localeCompare(b.name)).map(p => `
+      <li onclick="pickProject('${p.id}')">
+        <span class="dot" style="background:${getProjectColor(p.id)}"></span>
+        <span class="name">${escapeHtml(p.name)}</span>
+      </li>
+    `).join('');
+  } else {
+    list.innerHTML = '<li style="color:#999;cursor:default">All projects already added this week</li>';
+  }
+
+  document.getElementById('newProjectInline').value = '';
+  document.getElementById('addEntryModal').classList.add('show');
+}
+
+function closeAddEntryModal() {
+  document.getElementById('addEntryModal').classList.remove('show');
+}
+
+function pickProject(projectId) {
+  addEntryToWeek(currentWeek, projectId);
+  closeAddEntryModal();
+  render();
+}
+
+function addNewProjectAndEntry() {
+  const name = document.getElementById('newProjectInline').value.trim();
+  if (!name) { toast('Enter a project name'); return; }
+  const id = addToMasterList(name);
+  addEntryToWeek(currentWeek, id);
+  closeAddEntryModal();
+  toast(`Added "${name}"`);
+  render();
+}
+
+// ============================================================
+// DASHBOARD — MASTER LIST + AGGREGATES
+// ============================================================
+
+function renderDashboard(app) {
+  const totalWeeks = getTotalWeeks();
+  const master = getMasterList();
+  let allHours = 0, weeksFilled = 0;
+  const projectTotals = {};
+  const weeklyTotals = [];
+
+  master.forEach(p => { projectTotals[p.id] = 0; });
+
+  for (let w = 0; w < totalWeeks; w++) {
+    const week = getWeekData(w);
+    let weekTotal = 0;
+    week.entries.forEach(e => {
+      const h = parseFloat(e.hours) || 0;
+      projectTotals[e.id] = (projectTotals[e.id] || 0) + h;
+      weekTotal += h;
+      allHours += h;
+    });
+    weeklyTotals.push({ week: w + 1, hours: weekTotal, start: formatDate(getWeekStart(w)) });
+    if (weekTotal > 0) weeksFilled++;
+  }
+
+  const avgUtil = weeksFilled > 0 ? Math.round((allHours / (weeksFilled * WEEKLY_HOURS)) * 100) : 0;
+
+  app.innerHTML = `
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:20px">Aggregate Dashboard</h2>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-value">${allHours}</div><div class="stat-label">Total Hours</div></div>
+      <div class="stat-card"><div class="stat-value">${weeksFilled}</div><div class="stat-label">Weeks Tracked</div></div>
+      <div class="stat-card"><div class="stat-value">${avgUtil}%</div><div class="stat-label">Avg Utilization</div></div>
+    </div>
+
+    <div class="dashboard-charts">
+      <div class="card">
+        <h2>Time by Project (All Weeks)</h2>
+        <div class="chart-container"><canvas id="dashDonut"></canvas></div>
+        <div class="custom-legend" id="dashDonutLegend"></div>
+      </div>
+      <div class="card">
+        <h2>Weekly Hours Trend</h2>
+        <div class="dashboard-chart"><canvas id="dashBar"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <h2>Week-by-Week Breakdown</h2>
+      <table class="time-table">
+        <thead><tr><th>Week</th><th>Dates</th><th style="text-align:center">Hours</th><th style="text-align:center">Utilization</th></tr></thead>
+        <tbody>
+          ${weeklyTotals.map(w => `
+            <tr style="cursor:pointer" onclick="currentWeek=${w.week - 1};showView('weekly')">
+              <td style="font-weight:600">Week ${w.week}</td>
+              <td>${w.start}</td>
+              <td style="text-align:center">${w.hours}</td>
+              <td style="text-align:center">${Math.round((w.hours / WEEKLY_HOURS) * 100)}%</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <h2 style="margin-bottom:0">Master Project List</h2>
+        <button class="btn btn-outline" onclick="openAddMasterProjectModal()">+ Add Project</button>
+      </div>
+      <p style="font-size:13px;color:#999;margin-bottom:12px">Click any project name to rename it. Changes apply everywhere.</p>
+      <ul class="master-list">
+        ${[...master].sort((a, b) => a.name.localeCompare(b.name)).map((p, i) => {
+          const hrs = projectTotals[p.id] || 0;
+          return `<li>
+            <span class="dot" style="background:${getProjectColor(p.id)}"></span>
+            <span class="name editable-name" contenteditable="true" spellcheck="false"
+              onblur="handleRename('${p.id}', this.textContent)"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}">${escapeHtml(p.name)}</span>
+            <span style="font-size:12px;color:#999">${hrs > 0 ? hrs + ' hrs' : ''}</span>
+            <button class="remove-master" onclick="removeMasterProject('${p.id}')" title="Remove from master list">&times;</button>
+          </li>`;
+        }).join('')}
+      </ul>
+    </div>
+  `;
+
+  renderDashboardCharts(projectTotals, weeklyTotals, master);
+}
+
+function renderDashboardCharts(projectTotals, weeklyTotals, master) {
+  const donutCanvas = document.getElementById('dashDonut');
+  const dashLegendEl = document.getElementById('dashDonutLegend');
+  if (dashboardDonutChart) dashboardDonutChart.destroy();
+
+  const activePr = master.filter(p => (projectTotals[p.id] || 0) > 0);
+  // Sort by hours descending
+  activePr.sort((a, b) => (projectTotals[b.id] || 0) - (projectTotals[a.id] || 0));
+
+  if (activePr.length > 0) {
+    const labels = activePr.map(p => p.name);
+    const values = activePr.map(p => projectTotals[p.id]);
+    const colors = activePr.map(p => getProjectColor(p.id));
+
+    dashboardDonutChart = new Chart(donutCanvas, {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{ data: values, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }]
+      },
+      options: {
+        cutout: '55%',
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.parsed} hrs` } }
+        },
+        responsive: true, maintainAspectRatio: true
+      }
+    });
+
+    if (dashLegendEl) renderCustomLegend(dashLegendEl, labels, colors, values);
+  }
+
+  const barCanvas = document.getElementById('dashBar');
+  if (dashboardBarChart) dashboardBarChart.destroy();
+
+  dashboardBarChart = new Chart(barCanvas, {
+    type: 'bar',
+    data: {
+      labels: weeklyTotals.map(w => `Wk ${w.week}`),
+      datasets: [{
+        label: 'Hours',
+        data: weeklyTotals.map(w => w.hours),
+        backgroundColor: weeklyTotals.map(w => w.hours >= WEEKLY_HOURS ? '#333' : w.hours >= 30 ? '#888' : '#bbb'),
+        borderRadius: 6, borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        y: { beginAtZero: true, max: 50, ticks: { stepSize: 10, color: '#999' }, grid: { color: '#eee' } },
+        x: { grid: { display: false }, ticks: { color: '#999' } }
+      },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.parsed.y} hours` } } }
+    }
+  });
+}
+
+// ============================================================
+// MASTER PROJECT MANAGEMENT (from dashboard)
+// ============================================================
+
+function openAddMasterProjectModal() {
+  document.getElementById('newMasterProjectName').value = '';
+  document.getElementById('addMasterProjectModal').classList.add('show');
+  setTimeout(() => document.getElementById('newMasterProjectName').focus(), 100);
+}
+function closeAddMasterProjectModal() {
+  document.getElementById('addMasterProjectModal').classList.remove('show');
+}
+function confirmAddMasterProject() {
+  const name = document.getElementById('newMasterProjectName').value.trim();
+  if (!name) { toast('Enter a project name'); return; }
+  addToMasterList(name);
+  closeAddMasterProjectModal();
+  toast(`Added "${name}" to master list`);
+  render();
+}
+function handleRename(id, newName) {
+  newName = newName.trim();
+  if (!newName) { render(); return; } // revert if blank
+  const master = getMasterList();
+  const proj = master.find(p => p.id === id);
+  if (proj && proj.name !== newName) {
+    renameProject(id, newName);
+    toast(`Renamed to "${newName}"`);
+  }
+}
+
+function removeMasterProject(id) {
+  if (!confirm('Remove this project from the master list and all weeks?')) return;
+  removeFromMasterList(id);
+  toast('Project removed');
+  render();
+}
+
+// ============================================================
+// EXPORT VIEW
+// ============================================================
+
+function renderExport(app) {
+  const week = getWeekData(currentWeek);
+  const master = getMasterList();
+  const ws = getWeekStart(currentWeek);
+  const we = getWeekEnd(currentWeek);
+  const totalHours = week.entries.reduce((s, e) => s + (parseFloat(e.hours) || 0), 0);
+  const active = week.entries.filter(e => (parseFloat(e.hours) || 0) > 0);
+
+  let report = `TRACK STAR — Weekly Time Report\n`;
+  report += `${'═'.repeat(42)}\n`;
+  report += `Week ${currentWeek + 1}: ${formatDate(ws)} — ${formatDate(we)}\n`;
+  report += `Lance | FPO Group → Microsoft Power Platform EC\n\n`;
+
+  if (week.summary) {
+    report += `EXECUTIVE SUMMARY\n${'-'.repeat(30)}\n${week.summary}\n\n`;
+  }
+
+  report += `TIME BREAKDOWN\n${'-'.repeat(30)}\n`;
+  report += `${'Project Area'.padEnd(36)} ${'Description'.padEnd(30)} Hours\n`;
+  report += `${'-'.repeat(36)} ${'-'.repeat(30)} ${'-'.repeat(5)}\n`;
+
+  active.forEach(e => {
+    const proj = master.find(p => p.id === e.id);
+    const name = proj ? proj.name : e.id;
+    const desc = (e.description || '—').substring(0, 28);
+    report += `${name.padEnd(36)} ${desc.padEnd(30)} ${String(e.hours).padStart(5)}\n`;
+  });
+
+  report += `${'-'.repeat(74)}\n`;
+  report += `${'TOTAL'.padEnd(68)} ${String(totalHours).padStart(5)} hrs\n\n`;
+
+  if (week.fileLinks) {
+    report += `FILE LINKS\n${'-'.repeat(30)}\n${week.fileLinks}\n\n`;
+  }
+
+  report += `— Generated by Track Star`;
+
+  app.innerHTML = `
+    <div class="week-selector">
+      <button onclick="currentWeek=Math.max(0,currentWeek-1);render()">&larr; Prev</button>
+      <div class="week-label">Week ${currentWeek + 1}: ${formatDate(ws)} &mdash; ${formatDate(we)}</div>
+      <button onclick="currentWeek=Math.min(getCurrentWeekIndex(),currentWeek+1);render()">Next &rarr;</button>
+    </div>
+    <div class="card">
+      <h2>Report Preview</h2>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">Copy this report to paste into email or Teams.</p>
+      <div class="export-preview" id="exportPreview">${escapeHtml(report)}</div>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="copyExportReport()">Copy to Clipboard</button>
+      </div>
+    </div>
+  `;
+}
+
+function copyExportReport() {
+  const el = document.getElementById('exportPreview');
+  if (el) copyText(el.textContent);
+}
+function copyWeekReport() {
+  showView('export');
+  setTimeout(() => copyExportReport(), 200);
+}
+
+// ============================================================
+// DAILY PASTE — JSON-AWARE
+// ============================================================
+
+function openPasteModal() {
+  document.getElementById('pasteInput').value = '';
+  document.getElementById('pasteModal').classList.add('show');
+}
+function closePasteModal() { document.getElementById('pasteModal').classList.remove('show'); }
+
+function parseDailyPaste() {
+  const raw = document.getElementById('pasteInput').value.trim();
+  if (!raw) { toast('Nothing to import'); closePasteModal(); return; }
+
+  let activities = [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      activities = parsed
+        .filter(item => item.activity && item.duration && item.duration > 0)
+        .map(item => ({ name: item.activity, hours: parseFloat(item.duration) || 0 }));
+    }
+  } catch {
+    const lines = raw.split('\n').filter(l => l.trim());
+    lines.forEach(line => {
+      const hourMatch = line.match(/([\d.]+)\s*(hrs?|hours?)?/i);
+      const hours = hourMatch ? parseFloat(hourMatch[1]) : 0;
+      if (hours > 0) {
+        const name = line.replace(/([\d.]+)\s*(hrs?|hours?)?/i, '').replace(/[-–—:]/g, ' ').trim();
+        if (name) activities.push({ name, hours });
+      }
+    });
+  }
+
+  if (activities.length === 0) { toast('No valid activities found'); closePasteModal(); return; }
+
+  const matched = [];
+  const unmatched = [];
+
+  activities.forEach(act => {
+    const projectId = matchActivity(act.name);
+    if (projectId) {
+      matched.push({ ...act, projectId });
+    } else {
+      const lower = act.name.toLowerCase();
+      if (lower.includes('personal') || lower.includes('lunch') || lower.includes('break')) {
+        // Skip silently
+      } else {
+        unmatched.push(act);
+      }
+    }
+  });
+
+  // Apply matched: add entry to week if not already there, then add hours
+  const week = getWeekData(currentWeek);
+  matched.forEach(m => {
+    let entry = week.entries.find(e => e.id === m.projectId);
+    if (!entry) {
+      entry = { id: m.projectId, description: '', hours: 0 };
+      week.entries.push(entry);
+    }
+    entry.hours = (parseFloat(entry.hours) || 0) + m.hours;
+  });
+  setWeekData(currentWeek, week);
+
+  closePasteModal();
+
+  if (unmatched.length > 0) {
+    pendingUnmatched = unmatched;
+    showUnmatchedModal();
+  } else {
+    toast(`Imported ${matched.length} entries`);
+    render();
+  }
+}
+
+// ============================================================
+// UNMATCHED MODAL
+// ============================================================
+
+function showUnmatchedModal() {
+  const master = getMasterList();
+  const list = document.getElementById('unmatchedList');
+
+  list.innerHTML = pendingUnmatched.map((item, i) => `
+    <div class="unmatched-item">
+      <div class="activity-name">${escapeHtml(item.name)}</div>
+      <div class="activity-hours">${item.hours} hrs</div>
+      <select id="unmatch_${i}">
+        <option value="__skip__">Skip</option>
+        <option value="__new__">+ Add as new project</option>
+        <optgroup label="Existing projects">
+          ${master.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+        </optgroup>
+      </select>
+    </div>
+  `).join('');
+
+  document.getElementById('unmatchedModal').classList.add('show');
+}
+
+function closeUnmatchedModal() {
+  document.getElementById('unmatchedModal').classList.remove('show');
+  pendingUnmatched = [];
+  render();
+}
+
+function resolveUnmatched() {
+  const week = getWeekData(currentWeek);
+  let applied = 0;
+
+  pendingUnmatched.forEach((item, i) => {
+    const sel = document.getElementById(`unmatch_${i}`);
+    const val = sel.value;
+    if (val === '__skip__') return;
+
+    let targetId = val;
+    if (val === '__new__') {
+      targetId = addToMasterList(item.name);
+    }
+
+    let entry = week.entries.find(e => e.id === targetId);
+    if (!entry) {
+      entry = { id: targetId, description: '', hours: 0 };
+      week.entries.push(entry);
+    }
+    entry.hours = (parseFloat(entry.hours) || 0) + item.hours;
+    applied++;
+  });
+
+  setWeekData(currentWeek, week);
+  closeUnmatchedModal();
+  toast(`Resolved ${applied} entries`);
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => toast('Copied to clipboard!')).catch(() => toast('Copy failed'));
+}
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+Chart.defaults.font.family = "'Space Mono', monospace";
+render();
+</script>
+</body>
+</html>
