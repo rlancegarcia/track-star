@@ -99,7 +99,7 @@
     letter-spacing: 0.5px; color: var(--text-secondary); border-bottom: 2px solid var(--border);
     font-weight: 600;
   }
-  .time-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: top; font-family: 'Space Mono', monospace; }
+  .time-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: middle; font-family: 'Space Mono', monospace; }
   .time-table tbody tr:nth-child(even):not(.total-row) { background: #f7f7f4; }
   .time-table tr:last-child td { border-bottom: none; }
   .time-table .project-name { font-weight: 600; white-space: nowrap; font-family: 'Space Grotesk', sans-serif; }
@@ -306,9 +306,7 @@
     <a href="#" class="logo" onclick="goHome();return false">
       <img src="assets/Track-Star_logomark.svg" alt="Track Star">
     </a>
-    <div class="header-right" id="headerRight">
-      <a href="#" class="auth-link" id="authLink" onclick="toggleAuth();return false">Log In</a>
-    </div>
+    <div class="header-right" id="headerRight"></div>
   </div>
 </div>
 
@@ -435,9 +433,7 @@ function updateAuthUI() {
     `;
     document.body.classList.remove('view-only');
   } else {
-    headerRight.innerHTML = `
-      <a href="#" class="auth-link" id="authLink" onclick="toggleAuth();return false">Log In</a>
-    `;
+    headerRight.innerHTML = '';
     document.body.classList.add('view-only');
   }
 }
@@ -446,6 +442,14 @@ function toggleAuth() {
   if (isAdmin) doLogout();
   else openLoginModal();
 }
+
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'l') {
+    e.preventDefault();
+    if (isAdmin) doLogout();
+    else openLoginModal();
+  }
+});
 
 function openLoginModal() {
   document.getElementById('loginError').style.display = 'none';
