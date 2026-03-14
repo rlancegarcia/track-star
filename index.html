@@ -419,7 +419,7 @@
 
 const SUPABASE_URL = 'https://toqjgeuptdnucvositxk.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvcWpnZXVwdGRudWN2b3NpdHhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0NDc4ODcsImV4cCI6MjA4OTAyMzg4N30.UpEIidyiGyrUas8LsIQcDdk9-3xBk3s5rQPcof5fo8k';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let isAdmin = false;
 const dataCache = { master: null, weeks: {} };
@@ -430,7 +430,7 @@ const dataCache = { master: null, weeks: {} };
 
 async function checkAuth() {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await sb.auth.getSession();
     isAdmin = !!session;
   } catch (e) {
     console.error('Auth check error:', e);
@@ -480,7 +480,7 @@ async function doLogin() {
   const errEl = document.getElementById('loginError');
   if (!email || !password) { errEl.textContent = 'Enter email and password'; errEl.style.display = 'block'; return; }
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { error } = await sb.auth.signInWithPassword({ email, password });
   if (error) {
     errEl.textContent = error.message;
     errEl.style.display = 'block';
@@ -499,7 +499,7 @@ async function doLogin() {
 }
 
 async function doLogout() {
-  await supabase.auth.signOut();
+  await sb.auth.signOut();
   isAdmin = false;
   updateAuthUI();
   toast('Logged out');
@@ -526,7 +526,7 @@ async function migrateFromLocalStorage() {
   if (localMaster) {
     try {
       const master = JSON.parse(localMaster);
-      await supabase.from('master_projects').upsert(
+      await sb.from('master_projects').upsert(
         master.map(p => ({ id: p.id, name: p.name })),
         { onConflict: 'id' }
       );
@@ -540,7 +540,7 @@ async function migrateFromLocalStorage() {
       for (const [key, value] of Object.entries(data)) {
         if (key.startsWith('week_') && value.entries) {
           const weekIndex = parseInt(key.replace('week_', ''));
-          await supabase.from('week_data').upsert({
+          await sb.from('week_data').upsert({
             week_index: weekIndex,
             entries: value.entries,
             summary: value.summary || '',
@@ -623,7 +623,7 @@ function getTotalWeeks() {
 
 async function fetchAllData() {
   try {
-    const { data: projects, error: pErr } = await supabase.from('master_projects').select('*').order('name');
+    const { data: projects, error: pErr } = await sb.from('master_projects').select('*').order('name');
     if (pErr) throw pErr;
     dataCache.master = (projects && projects.length > 0)
       ? projects.map(p => ({ id: p.id, name: p.name }))
@@ -631,13 +631,13 @@ async function fetchAllData() {
 
     // If DB was empty, seed defaults (only if admin)
     if ((!projects || projects.length === 0) && isAdmin) {
-      await supabase.from('master_projects').upsert(
+      await sb.from('master_projects').upsert(
         DEFAULT_PROJECTS.map(p => ({ id: p.id, name: p.name })),
         { onConflict: 'id' }
       );
     }
 
-    const { data: weeks, error: wErr } = await supabase.from('week_data').select('*');
+    const { data: weeks, error: wErr } = await sb.from('week_data').select('*');
     if (wErr) throw wErr;
     dataCache.weeks = {};
     (weeks || []).forEach(w => {
@@ -659,7 +659,7 @@ function getMasterList() {
 
 function saveMasterList(list) {
   dataCache.master = [...list];
-  supabase.from('master_projects').upsert(
+  sb.from('master_projects').upsert(
     list.map(p => ({ id: p.id, name: p.name })),
     { onConflict: 'id' }
   ).then(({ error }) => { if (error) console.error('Save master error:', error); });
@@ -682,7 +682,7 @@ function renameProject(oldId, newName) {
   if (proj) {
     proj.name = newName;
     dataCache.master = [...list];
-    supabase.from('master_projects').update({ name: newName }).eq('id', oldId)
+    sb.from('master_projects').update({ name: newName }).eq('id', oldId)
       .then(({ error }) => { if (error) console.error('Rename error:', error); });
   }
 }
@@ -697,7 +697,7 @@ function removeFromMasterList(id) {
       setWeekData(weekIndex, dataCache.weeks[key]);
     }
   }
-  supabase.from('master_projects').delete().eq('id', id)
+  sb.from('master_projects').delete().eq('id', id)
     .then(({ error }) => { if (error) console.error('Delete error:', error); });
 }
 
@@ -710,7 +710,7 @@ function getWeekData(weekIndex) {
 
 function setWeekData(weekIndex, weekData) {
   dataCache.weeks[`week_${weekIndex}`] = { ...weekData };
-  supabase.from('week_data').upsert({
+  sb.from('week_data').upsert({
     week_index: weekIndex,
     entries: weekData.entries,
     summary: weekData.summary || '',
