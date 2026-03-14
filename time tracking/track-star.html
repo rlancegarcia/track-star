@@ -99,9 +99,8 @@
     letter-spacing: 0.5px; color: var(--text-secondary); border-bottom: 2px solid var(--border);
     font-weight: 600;
   }
-  .time-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: middle; font-family: 'Space Mono', monospace; }
+  .time-table td { padding: 12px 12px; font-size: 14px; vertical-align: middle; font-family: 'Space Mono', monospace; }
   .time-table tbody tr:nth-child(even):not(.total-row) { background: #f7f7f4; }
-  .time-table tr:last-child td { border-bottom: none; }
   .time-table .project-name { font-weight: 600; white-space: nowrap; font-family: 'Space Grotesk', sans-serif; }
   .time-table .project-dot {
     display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px;
@@ -114,7 +113,7 @@
   }
   .time-table textarea:focus { outline: none; border-color: #333; }
   .time-table input[type="number"] {
-    width: 70px; border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px;
+    width: 85px; border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px;
     font-size: 14px; text-align: center; font-weight: 700; font-family: 'Space Mono', monospace; transition: border-color 0.2s;
   }
   .time-table input[type="number"]:focus { outline: none; border-color: #333; }
@@ -844,7 +843,7 @@ function renderWeekly(app) {
       ${hasEntries ? `
       <table class="time-table">
         <thead>
-          <tr><th style="width:28%">Project Area</th><th style="padding-left:10px">Description</th><th style="width:90px;text-align:center">Hours</th><th style="width:40px"></th></tr>
+          <tr><th style="width:28%">Project Area</th><th style="padding-left:10px">Description</th><th style="width:110px;text-align:center">Hours</th><th style="width:40px"></th></tr>
         </thead>
         <tbody>
           ${week.entries.map((entry, i) => {
@@ -860,7 +859,7 @@ function renderWeekly(app) {
           <tr class="total-row">
             <td>Total</td>
             <td></td>
-            <td style="text-align:center;padding-right:0">${totalHours} hrs</td>
+            <td style="text-align:center">${totalHours} hrs</td>
             <td></td>
           </tr>
         </tbody>
