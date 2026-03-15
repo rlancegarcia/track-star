@@ -298,10 +298,58 @@
 
   @media (max-width: 768px) {
     .container { padding: 16px; }
-    .stats-row { grid-template-columns: repeat(2, 1fr); }
-    .week-bottom, .dashboard-charts { grid-template-columns: 1fr; }
     .header-inner { padding: 16px; }
-    .nav-inner { padding: 0 16px; }
+
+    /* Nav tabs — smaller text */
+    .nav-inner { padding: 0 12px; }
+    .nav-inner button { font-size: 11px; padding: 12px 14px; }
+
+    /* Week selector — stacked: label on top, buttons below */
+    .week-selector {
+      flex-wrap: wrap; justify-content: center; gap: 12px;
+      margin-bottom: 16px;
+    }
+    .week-selector .week-label { order: -1; width: 100%; font-size: 14px; }
+    .week-selector .week-prev,
+    .week-selector .week-next { flex: 1; }
+    .week-selector button {
+      min-width: 112px; padding: 9px 20px;
+    }
+
+    /* Hero stat cards — dark treatment, stacked full-width */
+    .stats-row { grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px; }
+    .stat-card {
+      padding: 16px 20px;
+      background: #2a2a2a; border-radius: 12px;
+      box-shadow: none;
+    }
+    .stat-card .stat-value { color: #ffffff; font-size: 26px; }
+    .stat-card .stat-label { color: #aaaaaa; }
+
+    /* Time entries — 50/50 columns, no dot */
+    .time-table .project-dot { display: none; }
+    .time-table th:nth-child(1),
+    .time-table td:nth-child(1) { width: 50%; }
+    .time-table th:nth-child(2),
+    .time-table td:nth-child(2) { width: 50%; }
+    .time-table th:nth-child(3),
+    .time-table td:nth-child(3) { width: auto; min-width: 70px; }
+    .time-table td { padding: 10px 8px; font-size: 13px; }
+    .time-table .project-name { white-space: normal; font-size: 13px; }
+    .time-table textarea { font-size: 12px; }
+    .time-table input[type="number"] { width: 65px; font-size: 13px; padding: 5px 4px; }
+
+    /* Stacked bottom sections */
+    .week-bottom, .dashboard-charts { grid-template-columns: 1fr; }
+
+    /* Uniform 16px spacing on all cards and sections */
+    .card { margin-bottom: 16px; }
+    .week-bottom { gap: 16px; }
+    .week-bottom .card { margin-bottom: 0; }
+    .week-bottom .card:last-child { margin-bottom: 0; }
+
+    /* Hide file links on mobile */
+    .file-links-card { display: none; }
   }
 </style>
 </head>
@@ -849,9 +897,9 @@ function renderWeekly(app) {
 
   app.innerHTML = `
     <div class="week-selector">
-      <button onclick="prevWeek()" ${currentWeek <= 0 ? 'disabled' : ''}>&larr; Prev</button>
+      <button class="week-prev" onclick="prevWeek()" ${currentWeek <= 0 ? 'disabled' : ''}>&larr; Prev</button>
       <div class="week-label">Week ${currentWeek + 1}: ${formatDate(ws)} &mdash; ${formatDate(we)}</div>
-      <button onclick="nextWeek()" ${currentWeek >= getCurrentWeekIndex() ? 'disabled' : ''}>Next &rarr;</button>
+      <button class="week-next" onclick="nextWeek()" ${currentWeek >= getCurrentWeekIndex() ? 'disabled' : ''}>Next &rarr;</button>
     </div>
 
     <div class="stats-row">
@@ -909,7 +957,7 @@ function renderWeekly(app) {
           <h2>Weekly Summary</h2>
           <textarea placeholder="Write a brief summary of this week's focus and key accomplishments..." onchange="updateSummary(this.value)">${week.summary || ''}</textarea>
         </div>
-        <div class="card summary-area">
+        <div class="card summary-area file-links-card">
           <h3>File Links</h3>
           <textarea placeholder="Paste links to deliverables, documents, or assets..." onchange="updateFileLinks(this.value)" rows="3">${week.fileLinks || ''}</textarea>
         </div>
@@ -1303,9 +1351,9 @@ function renderExport(app) {
 
   app.innerHTML = `
     <div class="week-selector">
-      <button onclick="currentWeek=Math.max(0,currentWeek-1);render()" ${currentWeek <= 0 ? 'disabled' : ''}>&larr; Prev</button>
+      <button class="week-prev" onclick="currentWeek=Math.max(0,currentWeek-1);render()" ${currentWeek <= 0 ? 'disabled' : ''}>&larr; Prev</button>
       <div class="week-label">Week ${currentWeek + 1}: ${formatDate(ws)} &mdash; ${formatDate(we)}</div>
-      <button onclick="currentWeek=Math.min(getCurrentWeekIndex(),currentWeek+1);render()" ${currentWeek >= getCurrentWeekIndex() ? 'disabled' : ''}>Next &rarr;</button>
+      <button class="week-next" onclick="currentWeek=Math.min(getCurrentWeekIndex(),currentWeek+1);render()" ${currentWeek >= getCurrentWeekIndex() ? 'disabled' : ''}>Next &rarr;</button>
     </div>
     <div class="card">
       <h2>Report Preview</h2>
