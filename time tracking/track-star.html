@@ -313,7 +313,7 @@
     .week-selector .week-prev,
     .week-selector .week-next { flex: 1; }
     .week-selector button {
-      min-width: 112px; padding: 9px 20px;
+      min-width: 0; padding: 9px 20px;
     }
 
     /* Hero stat cards — dark treatment, stacked full-width */
@@ -326,18 +326,16 @@
     .stat-card .stat-value { color: #ffffff; font-size: 26px; }
     .stat-card .stat-label { color: #aaaaaa; }
 
-    /* Time entries — 50/50 columns, no dot */
+    /* Time entries — hide description, no dot */
     .time-table .project-dot { display: none; }
-    .time-table th:nth-child(1),
-    .time-table td:nth-child(1) { width: 50%; }
     .time-table th:nth-child(2),
-    .time-table td:nth-child(2) { width: 50%; }
-    .time-table th:nth-child(3),
-    .time-table td:nth-child(3) { width: auto; min-width: 70px; }
+    .time-table td:nth-child(2) { display: none; }
     .time-table td { padding: 10px 8px; font-size: 13px; }
     .time-table .project-name { white-space: normal; font-size: 13px; }
-    .time-table textarea { font-size: 12px; }
     .time-table input[type="number"] { width: 65px; font-size: 13px; padding: 5px 4px; }
+
+    /* Center card headers */
+    .card h2, .card h3 { text-align: center; }
 
     /* Stacked bottom sections */
     .week-bottom, .dashboard-charts { grid-template-columns: 1fr; }
@@ -350,6 +348,13 @@
 
     /* Hide file links on mobile */
     .file-links-card { display: none; }
+
+    /* Footer — hide buttons, center copyright larger */
+    .actions-buttons { display: none !important; }
+    .actions {
+      justify-content: center !important;
+    }
+    .footer-credit { font-size: 14px !important; }
   }
 </style>
 </head>
@@ -965,11 +970,11 @@ function renderWeekly(app) {
     </div>
 
     <div class="actions" style="display:flex;align-items:center;justify-content:space-between">
-      <div>
+      <div class="actions-buttons">
         <button class="btn btn-primary admin-only" onclick="toast('Week saved!')">Save Week</button>
         <button class="btn btn-secondary" onclick="copyWeekReport()">Copy Report to Clipboard</button>
       </div>
-      <span style="font-size:12px;color:var(--text-secondary);font-family:'Space Grotesk',sans-serif">&copy; R. Lance Garcia</span>
+      <span class="footer-credit" style="font-size:12px;color:var(--text-secondary);font-family:'Space Grotesk',sans-serif">&copy; R. Lance Garcia</span>
     </div>
     ` : ''}
   `;
