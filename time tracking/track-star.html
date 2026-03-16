@@ -1218,10 +1218,27 @@ function renderDashboardCharts(projectTotals, weeklyTotals, master) {
   // Sort by hours descending
   activePr.sort((a, b) => (projectTotals[b.id] || 0) - (projectTotals[a.id] || 0));
 
+  // Consolidate "Customer Story:" projects into one entry
   if (activePr.length > 0) {
-    const labels = activePr.map(p => p.name);
-    const values = activePr.map(p => projectTotals[p.id]);
-    const colors = activePr.map(p => getProjectColor(p.id));
+    let csTotal = 0;
+    const nonCs = [];
+    activePr.forEach(p => {
+      if (p.name.toLowerCase().startsWith('customer story')) {
+        csTotal += projectTotals[p.id] || 0;
+      } else {
+        nonCs.push(p);
+      }
+    });
+    const consolidated = [...nonCs];
+    if (csTotal > 0) {
+      consolidated.push({ id: '__customer_stories__', name: 'Customer Stories' });
+      projectTotals['__customer_stories__'] = csTotal;
+    }
+    consolidated.sort((a, b) => (projectTotals[b.id] || 0) - (projectTotals[a.id] || 0));
+
+    const labels = consolidated.map(p => p.name);
+    const values = consolidated.map(p => projectTotals[p.id]);
+    const colors = consolidated.map(p => getProjectColor(p.id));
 
     dashboardDonutChart = new Chart(donutCanvas, {
       type: 'doughnut',
@@ -1246,8 +1263,9 @@ function renderDashboardCharts(projectTotals, weeklyTotals, master) {
   if (dashboardBarChart) dashboardBarChart.destroy();
 
   const reversedTotals = [...weeklyTotals].reverse();
-  const barHeight = 40;
-  const chartHeight = Math.max(200, reversedTotals.length * (barHeight + 12) + 40);
+  const barHeight = 36;
+  const barGap = 4;
+  const chartHeight = Math.max(200, reversedTotals.length * (barHeight + barGap + 12) + 40);
   barCanvas.parentElement.style.height = chartHeight + 'px';
   barCanvas.style.height = chartHeight + 'px';
 
@@ -1260,7 +1278,9 @@ function renderDashboardCharts(projectTotals, weeklyTotals, master) {
         data: reversedTotals.map(w => w.hours),
         backgroundColor: reversedTotals.map(w => w.hours > 40 ? '#000000' : w.hours >= WEEKLY_HOURS ? '#333' : w.hours >= 30 ? '#888' : '#bbb'),
         borderRadius: 6, borderSkipped: false,
-        barThickness: barHeight
+        barThickness: barHeight,
+        barPercentage: 0.85,
+        categoryPercentage: 0.85
       }]
     },
     options: {
