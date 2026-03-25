@@ -1275,7 +1275,7 @@ function renderDashboardCharts(projectTotals, weeklyTotals, master) {
 
   const reversedTotals = [...weeklyTotals].reverse();
   const barHeight = 36;
-  const barSlot = 48; // 36px bar + 12px spacing (ensures ≥4px gap)
+  const barSlot = 46; // 36px bar + 10px spacing (2px less than before)
   const maxVisibleWeeks = 8;
   const chartHeight = Math.max(200, reversedTotals.length * barSlot + 40);
   const maxWrapHeight = maxVisibleWeeks * barSlot + 40;
@@ -1298,6 +1298,24 @@ function renderDashboardCharts(projectTotals, weeklyTotals, master) {
         categoryPercentage: 0.85
       }]
     },
+    plugins: [{
+      id: 'yAxisGap',
+      afterDatasetsDraw(chart) {
+        const {ctx, chartArea} = chart;
+        ctx.save();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(chartArea.left, chartArea.top, 4, chartArea.height);
+        ctx.restore();
+        ctx.save();
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+        ctx.lineWidth = 1;
+        ctx.moveTo(chartArea.left, chartArea.top);
+        ctx.lineTo(chartArea.left, chartArea.bottom);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }],
     options: {
       indexAxis: 'y',
       responsive: true, maintainAspectRatio: false,
