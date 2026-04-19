@@ -1274,8 +1274,8 @@ function renderDashboardCharts(projectTotals, weeklyTotals, master) {
   if (dashboardBarChart) dashboardBarChart.destroy();
 
   const reversedTotals = [...weeklyTotals].reverse();
-  const barHeight = 36;
-  const barSlot = 46; // 36px bar + 10px spacing (2px less than before)
+  const barHeight = 18;
+  const barSlot = 28; // 18px bar + 10px spacing
   const maxVisibleWeeks = 8;
   const chartHeight = Math.max(200, reversedTotals.length * barSlot + 40);
   const maxWrapHeight = maxVisibleWeeks * barSlot + 40;
