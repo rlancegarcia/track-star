@@ -1274,8 +1274,8 @@ function renderDashboardCharts(projectTotals, weeklyTotals, master) {
   if (dashboardBarChart) dashboardBarChart.destroy();
 
   const reversedTotals = [...weeklyTotals].reverse();
-  const barHeight = 14;
-  const barSlot = 38; // 14px bar + 24px spacing for ample breathing room
+  const barHeight = 38; // thick, touching bars
+  const barSlot = 38;   // no gap between bars
   const maxVisibleWeeks = 12;
   const chartHeight = Math.max(200, reversedTotals.length * barSlot + 40);
   const maxWrapHeight = maxVisibleWeeks * barSlot + 40;
@@ -1284,6 +1284,10 @@ function renderDashboardCharts(projectTotals, weeklyTotals, master) {
   barWrap.style.height = Math.min(chartHeight, maxWrapHeight) + 'px';
   barWrap.style.overflowY = reversedTotals.length > maxVisibleWeeks ? 'auto' : 'hidden';
 
+  const baseColorFor = (hours) =>
+    hours > 40 ? '#000000' : hours >= WEEKLY_HOURS ? '#333333' : hours >= 30 ? '#888888' : '#bbbbbb';
+  const textColorFor = (hours) => (hours >= WEEKLY_HOURS ? '#ffffff' : '#222222');
+
   dashboardBarChart = new Chart(barCanvas, {
     type: 'bar',
     data: {
@@ -1291,39 +1295,54 @@ function renderDashboardCharts(projectTotals, weeklyTotals, master) {
       datasets: [{
         label: 'Hours',
         data: reversedTotals.map(w => w.hours),
-        backgroundColor: reversedTotals.map(w => w.hours > 40 ? '#000000' : w.hours >= WEEKLY_HOURS ? '#333' : w.hours >= 30 ? '#888' : '#bbb'),
-        borderRadius: 6, borderSkipped: false,
+        backgroundColor: (ctx) => {
+          const chart = ctx.chart;
+          const { ctx: c, chartArea, scales } = chart;
+          if (!chartArea) return 'rgba(0,0,0,0)';
+          const value = ctx.parsed?.x ?? ctx.raw ?? 0;
+          const base = baseColorFor(value);
+          const xStart = scales.x.getPixelForValue(0);
+          const xEnd = scales.x.getPixelForValue(value);
+          if (xEnd <= xStart + 1) return base;
+          const gradient = c.createLinearGradient(xStart, 0, xEnd, 0);
+          gradient.addColorStop(0, base);
+          gradient.addColorStop(1, base + '55'); // fade to ~33% alpha
+          return gradient;
+        },
+        borderRadius: 0,
+        borderSkipped: false,
         barThickness: barHeight,
-        barPercentage: 0.85,
-        categoryPercentage: 0.85
+        barPercentage: 1.0,
+        categoryPercentage: 1.0
       }]
     },
     plugins: [{
-      id: 'yAxisGap',
+      id: 'inBarLabels',
       afterDatasetsDraw(chart) {
-        const {ctx, chartArea} = chart;
+        const { ctx, scales } = chart;
+        const meta = chart.getDatasetMeta(0);
         ctx.save();
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(chartArea.left, chartArea.top, 4, chartArea.height);
-        ctx.restore();
-        ctx.save();
-        ctx.beginPath();
-        ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-        ctx.lineWidth = 1;
-        ctx.moveTo(chartArea.left, chartArea.top);
-        ctx.lineTo(chartArea.left, chartArea.bottom);
-        ctx.stroke();
+        ctx.font = '600 11px Inter, -apple-system, sans-serif';
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'left';
+        meta.data.forEach((bar, i) => {
+          const label = chart.data.labels[i];
+          const value = chart.data.datasets[0].data[i];
+          ctx.fillStyle = textColorFor(value);
+          ctx.fillText(label, scales.x.left + 10, bar.y);
+        });
         ctx.restore();
       }
     }],
     options: {
       indexAxis: 'y',
       responsive: true, maintainAspectRatio: false,
+      layout: { padding: { top: 4, bottom: 4 } },
       scales: {
         x: { beginAtZero: true, max: 50, ticks: { stepSize: 10, color: '#999' }, grid: { color: '#eee' } },
-        y: { grid: { display: false }, ticks: { color: '#999' } }
+        y: { display: false, grid: { display: false } }
       },
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.parsed.x} hours` } } }
+      plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => items[0].label, label: ctx => `${ctx.parsed.x} hours` } } }
     }
   });
 }
