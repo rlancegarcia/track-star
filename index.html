@@ -129,6 +129,12 @@
 
   .total-row td { font-weight: 700; border-top: 2px solid #333; font-size: 15px; font-family: 'Space Mono', monospace; }
 
+  /* Drag-to-reorder on entry rows */
+  .time-table tr.entry-row .project-name { cursor: grab; user-select: none; }
+  .time-table tr.entry-row.dragging .project-name { cursor: grabbing; }
+  .time-table tr.entry-row.dragging { opacity: 0.4; }
+  body.view-only .time-table tr.entry-row .project-name { cursor: default; }
+
   .remove-btn {
     background: none; border: none; cursor: pointer; color: #bbb; font-size: 16px;
     padding: 4px 8px; border-radius: 4px; transition: color 0.2s;
@@ -933,7 +939,11 @@ function renderWeekly(app) {
           ${week.entries.map((entry, i) => {
             const proj = master.find(p => p.id === entry.id);
             const name = proj ? proj.name : entry.id;
-            return `<tr>
+            return `<tr class="entry-row" draggable="true" data-entry-id="${entry.id}"
+              ondragstart="rowDragStart(event)"
+              ondragover="rowDragOver(event)"
+              ondragend="rowDragEnd(event)"
+              ondrop="rowDrop(event)">
               <td class="project-name"><span class="project-dot" style="background:${getProjectColor(entry.id)}"></span>${name}</td>
               <td><textarea onchange="updateEntry(${i},'description',this.value)" oninput="autoGrow(this)">${entry.description || ''}</textarea></td>
               <td style="text-align:center"><input type="number" min="0" max="40" step="0.5" value="${entry.hours || ''}" onchange="updateEntry(${i},'hours',this.value)" placeholder="0"></td>
@@ -1072,6 +1082,56 @@ function updateFileLinks(value) {
 
 function removeWeekEntry(projectId) {
   removeEntryFromWeek(currentWeek, projectId);
+  render();
+}
+
+// ---------- Drag-to-reorder entry rows ----------
+let _dragRow = null;
+
+function rowDragStart(e) {
+  // View-only users shouldn't reorder
+  if (document.body.classList.contains('view-only')) { e.preventDefault(); return; }
+  // If the drag originates from a text input/textarea/button, let the user interact normally
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'button') { e.preventDefault(); return; }
+  _dragRow = e.currentTarget;
+  _dragRow.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', _dragRow.dataset.entryId || ''); } catch (_) {}
+}
+
+function rowDragOver(e) {
+  if (!_dragRow) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const tr = (e.target && e.target.closest) ? e.target.closest('tr.entry-row') : null;
+  if (!tr || tr === _dragRow) return;
+  const rect = tr.getBoundingClientRect();
+  const before = e.clientY < rect.top + rect.height / 2;
+  if (before) tr.parentNode.insertBefore(_dragRow, tr);
+  else tr.parentNode.insertBefore(_dragRow, tr.nextSibling);
+}
+
+function rowDrop(e) {
+  if (_dragRow) e.preventDefault();
+}
+
+function rowDragEnd(e) {
+  const dragging = _dragRow;
+  _dragRow = null;
+  if (!dragging) return;
+  dragging.classList.remove('dragging');
+  const tbody = dragging.parentNode;
+  if (!tbody) { render(); return; }
+  // Read the new order from the DOM and commit it to the week data
+  const newOrder = Array.from(tbody.querySelectorAll('tr.entry-row')).map(r => r.dataset.entryId);
+  const week = getWeekData(currentWeek);
+  const byId = Object.fromEntries(week.entries.map(x => [x.id, x]));
+  const reordered = newOrder.map(id => byId[id]).filter(Boolean);
+  // Preserve any entries that somehow weren't in the DOM
+  week.entries.forEach(x => { if (!newOrder.includes(x.id)) reordered.push(x); });
+  week.entries = reordered;
+  setWeekData(currentWeek, week);
   render();
 }
 
