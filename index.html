@@ -181,10 +181,10 @@
   .dashboard-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
   .dashboard-chart { position: relative; }
   .dashboard-chart canvas { width: 100% !important; }
-  #dashBarWrap { scrollbar-width: none; position: relative; }
-  #dashBarWrap::-webkit-scrollbar { display: none; }
+  #dashBarScroll { position: relative; overflow-y: scroll; scrollbar-width: none; }
+  #dashBarScroll::-webkit-scrollbar { display: none; }
   .dashbar-fade {
-    position: sticky; bottom: 0; left: 0; right: 0; height: 40px; margin-top: -40px;
+    position: absolute; bottom: 0; left: 0; right: 0; height: 40px; z-index: 2;
     background: linear-gradient(to bottom, transparent, #fff);
     pointer-events: none; transition: opacity 0.25s;
   }
@@ -1231,7 +1231,7 @@ function renderDashboard(app) {
       </div>
       <div class="card">
         <h2>Weekly hours trend</h2>
-        <div class="dashboard-chart" id="dashBarWrap"><canvas id="dashBar"></canvas><div class="dashbar-fade" id="dashBarFade"></div></div>
+        <div id="dashBarScroll"><div class="dashboard-chart" id="dashBarWrap"><canvas id="dashBar"></canvas></div><div class="dashbar-fade" id="dashBarFade"></div></div>
       </div>
     </div>
 
@@ -1333,6 +1333,7 @@ function renderDashboardCharts(projectTotals, weeklyTotals, master) {
 
   const barCanvas = document.getElementById('dashBar');
   const barWrap = document.getElementById('dashBarWrap');
+  const scrollBox = document.getElementById('dashBarScroll');
   if (dashboardBarChart) dashboardBarChart.destroy();
 
   const reversedTotals = [...weeklyTotals].reverse();
@@ -1343,14 +1344,14 @@ function renderDashboardCharts(projectTotals, weeklyTotals, master) {
   const maxWrapHeight = maxVisibleWeeks * barSlot + 40;
 
   barCanvas.style.height = chartHeight + 'px';
-  barWrap.style.height = Math.min(chartHeight, maxWrapHeight) + 'px';
-  barWrap.style.overflowY = reversedTotals.length > maxVisibleWeeks ? 'scroll' : 'hidden';
+  barWrap.style.height = chartHeight + 'px';
+  scrollBox.style.height = Math.min(chartHeight, maxWrapHeight) + 'px';
 
   const fadeEl = document.getElementById('dashBarFade');
   if (fadeEl) {
     fadeEl.style.opacity = reversedTotals.length > maxVisibleWeeks ? '1' : '0';
-    barWrap.addEventListener('scroll', () => {
-      const atBottom = barWrap.scrollTop + barWrap.clientHeight >= barWrap.scrollHeight - 4;
+    scrollBox.addEventListener('scroll', () => {
+      const atBottom = scrollBox.scrollTop + scrollBox.clientHeight >= scrollBox.scrollHeight - 4;
       fadeEl.style.opacity = atBottom ? '0' : '1';
     }, { passive: true });
   }
