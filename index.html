@@ -181,13 +181,13 @@
   .dashboard-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
   .dashboard-chart { position: relative; }
   .dashboard-chart canvas { width: 100% !important; }
-  #dashBarScroll { position: relative; overflow-y: scroll; scrollbar-width: none; }
+  #dashBarCard { display: flex; flex-direction: column; }
+  #dashBarScroll { position: relative; overflow-y: scroll; scrollbar-width: none; flex: 1; min-height: 0; }
   #dashBarScroll::-webkit-scrollbar { display: none; }
-  .dashbar-fade {
-    position: absolute; bottom: 0; left: 0; right: 0; height: 40px; z-index: 2;
-    background: linear-gradient(to bottom, transparent, #fff);
-    pointer-events: none; transition: opacity 0.25s;
-  }
+  .dashbar-axis { display: flex; padding-top: 6px; border-top: 0.5px solid #eee; flex-shrink: 0; font-size: 11px; color: #999; }
+  .dashbar-axis-track { display: flex; justify-content: space-between; flex: 1; }
+  .dashbar-fade { position: absolute; bottom: 0; left: 0; right: 0; height: 40px; z-index: 2; background: linear-gradient(to bottom, transparent, #fff); pointer-events: none; transition: opacity 0.25s; }
+  #donutTooltip { position: fixed; background: rgba(0,0,0,0.85); color: #fff; border-radius: 6px; padding: 8px 12px; font-size: 12px; line-height: 1.4; pointer-events: none; z-index: 9999; white-space: nowrap; opacity: 0; transition: opacity 0.1s; }
 
   .actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
   .btn {
@@ -1229,9 +1229,10 @@ function renderDashboard(app) {
         <div class="chart-container"><canvas id="dashDonut"></canvas></div>
         <div class="custom-legend" id="dashDonutLegend"></div>
       </div>
-      <div class="card">
+      <div class="card" id="dashBarCard">
         <h2>Weekly hours trend</h2>
         <div id="dashBarScroll"><div class="dashboard-chart" id="dashBarWrap"><canvas id="dashBar"></canvas></div><div class="dashbar-fade" id="dashBarFade"></div></div>
+        <div class="dashbar-axis"><div class="dashbar-axis-track" id="dashBarAxisTrack"><span>0</span><span>10</span><span>20</span><span>30</span><span>40</span><span>50</span></div></div>
       </div>
     </div>
 
@@ -1312,6 +1313,19 @@ function renderDashboardCharts(projectTotals, weeklyTotals, master) {
     const values = consolidated.map(p => projectTotals[p.id]);
     const colors = consolidated.map(p => getProjectColor(p.id));
 
+    const donutTooltipHandler = (context) => {
+      let el = document.getElementById('donutTooltip');
+      if (!el) { el = document.createElement('div'); el.id = 'donutTooltip'; document.body.appendChild(el); }
+      const { chart, tooltip } = context;
+      if (tooltip.opacity === 0) { el.style.opacity = '0'; return; }
+      const dp = tooltip.dataPoints[0];
+      el.innerHTML = `<strong>${dp.label}</strong><br>${dp.label}: ${dp.parsed} hrs`;
+      const r = chart.canvas.getBoundingClientRect();
+      el.style.opacity = '1';
+      el.style.left = (r.left + tooltip.caretX + 12) + 'px';
+      el.style.top  = (r.top  + tooltip.caretY - 20) + 'px';
+    };
+
     dashboardDonutChart = new Chart(donutCanvas, {
       type: 'doughnut',
       data: {
@@ -1322,7 +1336,7 @@ function renderDashboardCharts(projectTotals, weeklyTotals, master) {
         cutout: '55%',
         plugins: {
           legend: { display: false },
-          tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.parsed} hrs` } }
+          tooltip: { enabled: false, external: donutTooltipHandler }
         },
         responsive: true, maintainAspectRatio: true
       }
@@ -1338,14 +1352,12 @@ function renderDashboardCharts(projectTotals, weeklyTotals, master) {
 
   const reversedTotals = [...weeklyTotals].reverse();
   const barHeight = 40; // bar height
-  const barSlot = 48;   // slot per bar (bar + gap)
+  const barSlot = 42;   // bar + 2px gap
   const maxVisibleWeeks = 12;
-  const chartHeight = Math.max(200, reversedTotals.length * barSlot + 40);
-  const maxWrapHeight = maxVisibleWeeks * barSlot + 40;
+  const chartHeight = Math.max(200, reversedTotals.length * barSlot + 20);
 
   barCanvas.style.height = chartHeight + 'px';
   barWrap.style.height = chartHeight + 'px';
-  scrollBox.style.height = Math.min(chartHeight, maxWrapHeight) + 'px';
 
   const fadeEl = document.getElementById('dashBarFade');
   if (fadeEl) {
@@ -1389,6 +1401,12 @@ function renderDashboardCharts(projectTotals, weeklyTotals, master) {
       }]
     },
     plugins: [{
+      id: 'syncAxis',
+      afterRender(chart) {
+        const track = document.getElementById('dashBarAxisTrack');
+        if (track) track.style.paddingLeft = chart.chartArea.left + 'px';
+      }
+    }, {
       id: 'inBarLabels',
       afterDatasetsDraw(chart) {
         const { ctx, scales } = chart;
@@ -1409,9 +1427,9 @@ function renderDashboardCharts(projectTotals, weeklyTotals, master) {
     options: {
       indexAxis: 'y',
       responsive: true, maintainAspectRatio: false,
-      layout: { padding: { top: 4, bottom: 4 } },
+      layout: { padding: { top: 4, bottom: 0 } },
       scales: {
-        x: { beginAtZero: true, max: 50, ticks: { stepSize: 10, color: '#999' }, grid: { color: '#eee' } },
+        x: { beginAtZero: true, max: 50, ticks: { display: false }, border: { display: false }, grid: { color: '#eee', drawTicks: false } },
         y: { display: false, grid: { display: false } }
       },
       plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => items[0].label, label: ctx => `${ctx.parsed.x} hours` } } }
