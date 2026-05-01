@@ -178,10 +178,10 @@
   .stat-card .stat-value { font-size: 28px; font-weight: 700; color: #111; font-family: 'Space Mono', monospace; }
   .stat-card .stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
 
-  .dashboard-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .dashboard-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
   .dashboard-chart { position: relative; }
   .dashboard-chart canvas { width: 100% !important; }
-  #dashBarCard { display: flex; flex-direction: column; padding-bottom: 60px; }
+  #dashBarCard { display: flex; flex-direction: column; overflow: hidden; }
   #dashBarScroll { position: relative; overflow-y: scroll; scrollbar-width: none; flex: 1; min-height: 0; }
   #dashBarScroll::-webkit-scrollbar { display: none; }
   .dashbar-axis { display: flex; padding-top: 6px; border-top: 0.5px solid #eee; flex-shrink: 0; font-size: 11px; color: #999; }
@@ -1433,6 +1433,15 @@ function renderDashboardCharts(projectTotals, weeklyTotals, master) {
         y: { display: false, grid: { display: false } }
       },
       plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => items[0].label, label: ctx => `${ctx.parsed.x} hours` } } }
+    }
+  });
+
+  // Match bar card height to donut card's natural height
+  requestAnimationFrame(() => {
+    const donutCard = donutCanvas.closest('.card');
+    const barCard = document.getElementById('dashBarCard');
+    if (donutCard && barCard) {
+      barCard.style.height = donutCard.offsetHeight + 'px';
     }
   });
 }
