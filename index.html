@@ -1287,7 +1287,7 @@ function renderDashboardCharts(projectTotals, weeklyTotals, master) {
   const dashLegendEl = document.getElementById('dashDonutLegend');
   if (dashboardDonutChart) dashboardDonutChart.destroy();
 
-  const activePr = master.filter(p => (projectTotals[p.id] || 0) > 0);
+  const activePr = master.filter(p => (projectTotals[p.id] || 0) > 0 && p.id !== 'team-comms');
   // Sort by hours descending
   activePr.sort((a, b) => (projectTotals[b.id] || 0) - (projectTotals[a.id] || 0));
 
