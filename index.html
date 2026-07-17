@@ -227,11 +227,14 @@
   }
   .modal textarea:focus { outline: none; border-color: #333; }
   .modal .actions { margin-top: 14px; }
-  .modal input[type="text"] {
+  .modal input[type="text"],
+  .modal input[type="date"] {
     width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px;
     font-size: 14px; font-family: inherit; margin-bottom: 12px;
   }
-  .modal input[type="text"]:focus { outline: none; border-color: #333; }
+  .modal input[type="text"]:focus,
+  .modal input[type="date"]:focus { outline: none; border-color: #333; }
+  .modal label.field-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
 
   /* Project picker list inside modal */
   .project-picker { list-style: none; max-height: 320px; overflow-y: auto; }
@@ -288,6 +291,37 @@
     padding: 2px 6px; border-radius: 4px; transition: color 0.2s;
   }
   .master-list li .remove-master:hover { color: #c00; }
+
+  /* Staging — upcoming projects backlog */
+  .staging-list { list-style: none; }
+  .staging-card {
+    background: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow);
+    padding: 18px 20px; margin-bottom: 14px; cursor: grab;
+  }
+  .staging-card.dragging { opacity: 0.4; cursor: grabbing; }
+  body.view-only .staging-card { cursor: default; }
+  .staging-card-header {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px;
+  }
+  .staging-card-title { font-size: 16px; font-weight: 700; }
+  .staging-card-due {
+    font-size: 12px; font-weight: 600; color: var(--text-secondary); font-family: 'Space Mono', monospace;
+    white-space: nowrap; background: #f0f0ec; padding: 4px 10px; border-radius: 6px;
+  }
+  .staging-card-due.overdue { color: #c00; background: #fbe6e6; }
+  .staging-card-brief {
+    font-size: 13px; color: #444; white-space: pre-wrap; margin-bottom: 14px;
+    max-height: 160px; overflow-y: auto; background: #fafafa; border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px; line-height: 1.5;
+  }
+  .staging-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .staging-artifact-link {
+    font-size: 13px; font-weight: 600; color: #333; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .staging-artifact-link:hover { text-decoration: underline; }
+  .staging-card-actions { display: flex; gap: 8px; align-items: center; }
+  .staging-card-actions .btn { padding: 6px 14px; font-size: 12px; }
 
   /* View-only mode: hide edit controls for visitors */
   body.view-only .admin-only { display: none !important; }
@@ -406,6 +440,7 @@
   <div class="nav-inner">
     <button class="active" onclick="showView('weekly')">Weekly View</button>
     <button onclick="showView('dashboard')">Dashboard</button>
+    <button onclick="showView('staging')">Staging</button>
     <button onclick="showView('export')">Export / Share</button>
     <button class="admin-only" onclick="openPasteModal()" style="position:absolute;right:32px;top:50%;transform:translateY(-50%);color:var(--text-secondary)">Copy from Daily</button>
   </div>
@@ -487,6 +522,26 @@
   </div>
 </div>
 
+<!-- Staging: Add / Edit Upcoming Project -->
+<div class="modal-overlay" id="stagingModal">
+  <div class="modal">
+    <h2 id="stagingModalTitle">Add Upcoming Project</h2>
+    <p>Track it here so stakeholders know it's in the pipeline. Drag cards up or down to set priority.</p>
+    <label class="field-label" for="stagingName">Project name</label>
+    <input type="text" id="stagingName" placeholder="e.g. Customer Story: Acme Corp">
+    <label class="field-label" for="stagingDueDate">Due date</label>
+    <input type="date" id="stagingDueDate">
+    <label class="field-label" for="stagingBrief">Project brief</label>
+    <textarea id="stagingBrief" placeholder="Paste the incoming brief from your teammate..." style="min-height:140px;margin-bottom:12px;font-family:'Space Grotesk',sans-serif;font-size:13px;width:100%;border:1px solid var(--border);border-radius:8px;padding:12px;resize:vertical"></textarea>
+    <label class="field-label" for="stagingArtifactUrl">WIP artifact link</label>
+    <input type="text" id="stagingArtifactUrl" placeholder="SharePoint / Word / PPT link">
+    <div class="actions">
+      <button class="btn btn-primary" onclick="saveStagingProject()">Save</button>
+      <button class="btn btn-outline" onclick="closeStagingModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ============================================================
 // SUPABASE SETUP
@@ -497,7 +552,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let isAdmin = false;
-const dataCache = { master: null, weeks: {} };
+const dataCache = { master: null, weeks: {}, staging: null };
 
 // ============================================================
 // AUTH
@@ -729,6 +784,27 @@ async function fetchAllData() {
     console.error('Fetch data error:', e?.message || JSON.stringify(e));
     if (!dataCache.master) dataCache.master = [...DEFAULT_PROJECTS];
   }
+
+  // Staging fetched separately so a missing/not-yet-created table doesn't break the rest of the app
+  try {
+    const { data: staging, error: sErr } = await sb.from('staging_projects').select('*').order('sort_order');
+    if (sErr) throw sErr;
+    dataCache.staging = (staging || []).map(s => ({
+      id: s.id,
+      name: s.name,
+      dueDate: s.due_date,
+      brief: s.brief || '',
+      artifactUrl: s.artifact_url || '',
+      sortOrder: s.sort_order || 0
+    }));
+  } catch (e) {
+    console.error('Fetch staging error:', e?.message || JSON.stringify(e));
+    if (!dataCache.staging) dataCache.staging = [];
+  }
+}
+
+function getStagingList() {
+  return dataCache.staging ? [...dataCache.staging] : [];
 }
 
 function getMasterList() {
@@ -897,6 +973,7 @@ function render() {
   const app = document.getElementById('app');
   if (currentView === 'weekly') renderWeekly(app);
   else if (currentView === 'dashboard') renderDashboard(app);
+  else if (currentView === 'staging') renderStaging(app);
   else if (currentView === 'export') renderExport(app);
   setTimeout(autoResizeTextareas, 0);
 }
@@ -1481,6 +1558,175 @@ function removeMasterProject(id) {
   if (!confirm('Remove this project from the master list and all weeks?')) return;
   removeFromMasterList(id);
   toast('Project removed');
+  render();
+}
+
+// ============================================================
+// STAGING — UPCOMING PROJECTS BACKLOG
+// ============================================================
+
+let editingStagingId = null;
+
+function renderStaging(app) {
+  const sorted = getStagingList().sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  app.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h2 style="font-size:18px;font-weight:700;margin-bottom:0">Staging &mdash; Upcoming Projects</h2>
+      <button class="btn btn-outline admin-only" onclick="openStagingModal()">+ Add Project</button>
+    </div>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">Drag cards to reorder priority. Anyone with the link can view &mdash; use this to keep stakeholders posted on what's queued up.</p>
+    ${sorted.length === 0 ? `
+      <div class="empty-state">
+        <p>Nothing in staging yet. Add an upcoming project to let stakeholders know it's in the tracker.</p>
+        <button class="btn btn-primary admin-only" onclick="openStagingModal()">+ Add Project</button>
+      </div>
+    ` : `
+      <div class="staging-list" id="stagingList">
+        ${sorted.map(p => {
+          let dueLabel = '', overdue = false;
+          if (p.dueDate) {
+            const d = new Date(p.dueDate + 'T00:00:00');
+            dueLabel = formatDate(d);
+            overdue = d < today;
+          }
+          return `
+          <div class="staging-card" data-id="${p.id}" draggable="${isAdmin}"
+            ondragstart="stagingDragStart(event)" ondragover="stagingDragOver(event)"
+            ondragend="stagingDragEnd(event)" ondrop="stagingDrop(event)">
+            <div class="staging-card-header">
+              <div class="staging-card-title">${escapeHtml(p.name)}</div>
+              ${dueLabel ? `<div class="staging-card-due${overdue ? ' overdue' : ''}">Due ${dueLabel}</div>` : ''}
+            </div>
+            ${p.brief ? `<div class="staging-card-brief">${escapeHtml(p.brief)}</div>` : ''}
+            <div class="staging-card-footer">
+              ${p.artifactUrl ? `<a class="staging-artifact-link" href="${escapeHtml(p.artifactUrl)}" target="_blank" rel="noopener noreferrer">WIP Artifact &#8599;</a>` : '<span></span>'}
+              <div class="staging-card-actions admin-only">
+                <button class="btn btn-outline" onclick="openStagingModal('${p.id}')">Edit</button>
+                <button class="remove-btn" onclick="removeStagingProject('${p.id}')" title="Remove from staging">&times;</button>
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    `}
+    <div style="text-align:center;padding:16px 0">
+      <span class="footer-credit" style="font-size:12px;color:var(--text-secondary);font-family:'Space Grotesk',sans-serif">&copy; R. Lance Garcia</span>
+    </div>
+  `;
+}
+
+function openStagingModal(id) {
+  editingStagingId = id || null;
+  const existing = id ? getStagingList().find(p => p.id === id) : null;
+  document.getElementById('stagingModalTitle').textContent = existing ? 'Edit Project' : 'Add Upcoming Project';
+  document.getElementById('stagingName').value = existing ? existing.name : '';
+  document.getElementById('stagingDueDate').value = existing ? (existing.dueDate || '') : '';
+  document.getElementById('stagingBrief').value = existing ? existing.brief : '';
+  document.getElementById('stagingArtifactUrl').value = existing ? existing.artifactUrl : '';
+  document.getElementById('stagingModal').classList.add('show');
+  setTimeout(() => document.getElementById('stagingName').focus(), 100);
+}
+
+function closeStagingModal() {
+  document.getElementById('stagingModal').classList.remove('show');
+  editingStagingId = null;
+}
+
+function saveStagingProject() {
+  const name = document.getElementById('stagingName').value.trim();
+  const dueDate = document.getElementById('stagingDueDate').value || null;
+  const brief = document.getElementById('stagingBrief').value.trim();
+  const artifactUrl = document.getElementById('stagingArtifactUrl').value.trim();
+  if (!name) { toast('Enter a project name'); return; }
+
+  const list = getStagingList();
+
+  if (editingStagingId) {
+    const proj = list.find(p => p.id === editingStagingId);
+    if (proj) {
+      proj.name = name; proj.dueDate = dueDate; proj.brief = brief; proj.artifactUrl = artifactUrl;
+      dataCache.staging = list;
+      sb.from('staging_projects').update({
+        name, due_date: dueDate, brief, artifact_url: artifactUrl
+      }).eq('id', editingStagingId).then(({ error }) => { if (error) console.error('Update staging error:', error); });
+    }
+    toast('Project updated');
+  } else {
+    const id = 'stg-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const sortOrder = list.length > 0 ? Math.max(...list.map(p => p.sortOrder || 0)) + 1 : 0;
+    dataCache.staging = [...list, { id, name, dueDate, brief, artifactUrl, sortOrder }];
+    sb.from('staging_projects').insert({
+      id, name, due_date: dueDate, brief, artifact_url: artifactUrl, sort_order: sortOrder
+    }).then(({ error }) => { if (error) console.error('Insert staging error:', error); });
+    toast(`Added "${name}" to staging`);
+  }
+
+  closeStagingModal();
+  render();
+}
+
+function removeStagingProject(id) {
+  if (!confirm('Remove this project from staging?')) return;
+  dataCache.staging = getStagingList().filter(p => p.id !== id);
+  sb.from('staging_projects').delete().eq('id', id)
+    .then(({ error }) => { if (error) console.error('Delete staging error:', error); });
+  toast('Removed from staging');
+  render();
+}
+
+// ---------- Drag-to-reorder staging cards ----------
+let _stagingDragCard = null;
+
+function stagingDragStart(e) {
+  if (document.body.classList.contains('view-only')) { e.preventDefault(); return; }
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'button' || tag === 'a') { e.preventDefault(); return; }
+  _stagingDragCard = e.currentTarget;
+  _stagingDragCard.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', _stagingDragCard.dataset.id || ''); } catch (_) {}
+}
+
+function stagingDragOver(e) {
+  if (!_stagingDragCard) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const card = (e.target && e.target.closest) ? e.target.closest('.staging-card') : null;
+  if (!card || card === _stagingDragCard) return;
+  const rect = card.getBoundingClientRect();
+  const before = e.clientY < rect.top + rect.height / 2;
+  if (before) card.parentNode.insertBefore(_stagingDragCard, card);
+  else card.parentNode.insertBefore(_stagingDragCard, card.nextSibling);
+}
+
+function stagingDrop(e) {
+  if (_stagingDragCard) e.preventDefault();
+}
+
+function stagingDragEnd(e) {
+  const dragging = _stagingDragCard;
+  _stagingDragCard = null;
+  if (!dragging) return;
+  dragging.classList.remove('dragging');
+  const container = dragging.parentNode;
+  if (!container) { render(); return; }
+  const newOrder = Array.from(container.querySelectorAll('.staging-card')).map(c => c.dataset.id);
+  const list = getStagingList();
+  const byId = Object.fromEntries(list.map(p => [p.id, p]));
+  const reordered = newOrder.map((id, i) => {
+    const p = byId[id];
+    if (p) p.sortOrder = i;
+    return p;
+  }).filter(Boolean);
+  list.forEach(p => { if (!newOrder.includes(p.id)) reordered.push(p); });
+  dataCache.staging = reordered;
+  reordered.forEach((p, i) => {
+    sb.from('staging_projects').update({ sort_order: i }).eq('id', p.id)
+      .then(({ error }) => { if (error) console.error('Reorder staging error:', error); });
+  });
   render();
 }
 
