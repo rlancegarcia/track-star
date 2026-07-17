@@ -334,6 +334,26 @@
 
   /* Auth link in header — handled by .auth-link above */
 
+  /* Access gate — blocks everything until today's phrase is entered */
+  #accessGate {
+    position: fixed; inset: 0; z-index: 10000; background: #2a2a2a;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  #accessGate.hidden { display: none; }
+  body.gate-locked > *:not(#accessGate) { display: none !important; }
+  .gate-card {
+    background: white; border-radius: 16px; padding: 36px 32px; max-width: 360px; width: 100%;
+    box-shadow: var(--shadow-lg); text-align: center;
+  }
+  .gate-card h1 { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+  .gate-card p { font-size: 13px; color: var(--text-secondary); margin-bottom: 18px; }
+  .gate-card input {
+    width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px;
+    font-size: 14px; font-family: 'Space Grotesk', sans-serif; margin-bottom: 12px; text-align: center;
+  }
+  .gate-card input:focus { outline: none; border-color: #333; }
+  .gate-error { color: #c00; font-size: 13px; margin-bottom: 10px; display: none; }
+
   /* Login modal */
   .login-modal-content { max-width: 340px; }
   .login-modal-content input {
@@ -406,7 +426,17 @@
   }
 </style>
 </head>
-<body>
+<body class="gate-locked">
+
+<div id="accessGate">
+  <div class="gate-card">
+    <h1>Track Star</h1>
+    <p>Enter today's access phrase to continue.</p>
+    <input type="text" id="gatePassword" placeholder="Access phrase" autocomplete="off" onkeydown="if(event.key==='Enter')checkGateAccess()">
+    <div class="gate-error" id="gateError"></div>
+    <button class="btn btn-primary" style="width:100%" onclick="checkGateAccess()">Enter</button>
+  </div>
+</div>
 
 <div class="top-accent"></div>
 <div class="header">
@@ -543,6 +573,52 @@
 </div>
 
 <script>
+// ============================================================
+// ACCESS GATE — daily phrase: today's weekday name + "power" + "!"
+// (any casing, spaces optional) — must pass before anything renders
+// ============================================================
+
+const GATE_DAY_NAME = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+const GATE_SESSION_KEY = 'trackstar_gate_' + new Date().toISOString().slice(0, 10);
+
+function gateExpectedPhrase() {
+  return (GATE_DAY_NAME + 'power!').toLowerCase();
+}
+
+function isValidGatePhrase(input) {
+  return input.replace(/\s+/g, '').toLowerCase() === gateExpectedPhrase();
+}
+
+function unlockGate() {
+  document.body.classList.remove('gate-locked');
+  const gate = document.getElementById('accessGate');
+  if (gate) gate.classList.add('hidden');
+}
+
+function checkGateAccess() {
+  const input = document.getElementById('gatePassword');
+  const errEl = document.getElementById('gateError');
+  if (isValidGatePhrase(input.value)) {
+    try { sessionStorage.setItem(GATE_SESSION_KEY, 'true'); } catch (_) {}
+    unlockGate();
+  } else {
+    errEl.textContent = "That's not today's phrase — try again.";
+    errEl.style.display = 'block';
+    input.value = '';
+    input.focus();
+  }
+}
+
+(function initGate() {
+  let alreadyPassed = false;
+  try { alreadyPassed = sessionStorage.getItem(GATE_SESSION_KEY) === 'true'; } catch (_) {}
+  if (alreadyPassed) {
+    unlockGate();
+  } else {
+    setTimeout(() => { const el = document.getElementById('gatePassword'); if (el) el.focus(); }, 100);
+  }
+})();
+
 // ============================================================
 // SUPABASE SETUP
 // ============================================================
