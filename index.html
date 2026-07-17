@@ -294,12 +294,21 @@
 
   /* Staging — upcoming projects backlog */
   .staging-list { list-style: none; }
+  .staging-module {
+    display: flex; align-items: flex-start; gap: 24px;
+    padding: 30px 0; cursor: grab;
+  }
+  .staging-module:not(:last-child) { border-bottom: 2px dashed #ccc; }
+  .staging-module.dragging { opacity: 0.4; cursor: grabbing; }
+  body.view-only .staging-module { cursor: default; }
+  .staging-module-number {
+    font-size: 56px; font-weight: 800; font-family: 'Space Mono', monospace;
+    color: #dcdcd5; line-height: 1; min-width: 90px; flex-shrink: 0; user-select: none;
+  }
   .staging-card {
     background: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow);
-    padding: 18px 20px; margin-bottom: 14px; cursor: grab;
+    padding: 18px 20px; flex: 0 0 33%; max-width: 33%; min-width: 260px;
   }
-  .staging-card.dragging { opacity: 0.4; cursor: grabbing; }
-  body.view-only .staging-card { cursor: default; }
   .staging-card-header {
     display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px;
   }
@@ -416,6 +425,11 @@
 
     /* Hide file links on mobile */
     .file-links-card { display: none; }
+
+    /* Staging — stack number above card, full width */
+    .staging-module { flex-direction: column; gap: 8px; padding: 20px 0; }
+    .staging-module-number { font-size: 36px; min-width: 0; }
+    .staging-card { flex: 1 1 auto; max-width: 100%; min-width: 0; }
 
     /* Footer — hide buttons, center copyright larger */
     .actions-buttons { display: none !important; }
@@ -1661,7 +1675,7 @@ function renderStaging(app) {
       </div>
     ` : `
       <div class="staging-list" id="stagingList">
-        ${sorted.map(p => {
+        ${sorted.map((p, idx) => {
           let dueLabel = '', overdue = false;
           if (p.dueDate) {
             const d = new Date(p.dueDate + 'T00:00:00');
@@ -1669,19 +1683,22 @@ function renderStaging(app) {
             overdue = d < today;
           }
           return `
-          <div class="staging-card" data-id="${p.id}" draggable="${isAdmin}"
+          <div class="staging-module" data-id="${p.id}" draggable="${isAdmin}"
             ondragstart="stagingDragStart(event)" ondragover="stagingDragOver(event)"
             ondragend="stagingDragEnd(event)" ondrop="stagingDrop(event)">
-            <div class="staging-card-header">
-              <div class="staging-card-title">${escapeHtml(p.name)}</div>
-              ${dueLabel ? `<div class="staging-card-due${overdue ? ' overdue' : ''}">Due ${dueLabel}</div>` : ''}
-            </div>
-            ${p.brief ? `<div class="staging-card-brief">${escapeHtml(p.brief)}</div>` : ''}
-            <div class="staging-card-footer">
-              ${p.artifactUrl ? `<a class="staging-artifact-link" href="${escapeHtml(p.artifactUrl)}" target="_blank" rel="noopener noreferrer">WIP Artifact &#8599;</a>` : '<span></span>'}
-              <div class="staging-card-actions admin-only">
-                <button class="btn btn-outline" onclick="openStagingModal('${p.id}')">Edit</button>
-                <button class="remove-btn" onclick="removeStagingProject('${p.id}')" title="Remove from staging">&times;</button>
+            <div class="staging-module-number">${String(idx + 1).padStart(2, '0')}</div>
+            <div class="staging-card">
+              <div class="staging-card-header">
+                <div class="staging-card-title">${escapeHtml(p.name)}</div>
+                ${dueLabel ? `<div class="staging-card-due${overdue ? ' overdue' : ''}">Due ${dueLabel}</div>` : ''}
+              </div>
+              ${p.brief ? `<div class="staging-card-brief">${escapeHtml(p.brief)}</div>` : ''}
+              <div class="staging-card-footer">
+                ${p.artifactUrl ? `<a class="staging-artifact-link" href="${escapeHtml(p.artifactUrl)}" target="_blank" rel="noopener noreferrer">WIP Artifact &#8599;</a>` : '<span></span>'}
+                <div class="staging-card-actions admin-only">
+                  <button class="btn btn-outline" onclick="openStagingModal('${p.id}')">Edit</button>
+                  <button class="remove-btn" onclick="removeStagingProject('${p.id}')" title="Remove from staging">&times;</button>
+                </div>
               </div>
             </div>
           </div>`;
@@ -1770,12 +1787,12 @@ function stagingDragOver(e) {
   if (!_stagingDragCard) return;
   e.preventDefault();
   e.dataTransfer.dropEffect = 'move';
-  const card = (e.target && e.target.closest) ? e.target.closest('.staging-card') : null;
-  if (!card || card === _stagingDragCard) return;
-  const rect = card.getBoundingClientRect();
+  const mod = (e.target && e.target.closest) ? e.target.closest('.staging-module') : null;
+  if (!mod || mod === _stagingDragCard) return;
+  const rect = mod.getBoundingClientRect();
   const before = e.clientY < rect.top + rect.height / 2;
-  if (before) card.parentNode.insertBefore(_stagingDragCard, card);
-  else card.parentNode.insertBefore(_stagingDragCard, card.nextSibling);
+  if (before) mod.parentNode.insertBefore(_stagingDragCard, mod);
+  else mod.parentNode.insertBefore(_stagingDragCard, mod.nextSibling);
 }
 
 function stagingDrop(e) {
@@ -1789,7 +1806,7 @@ function stagingDragEnd(e) {
   dragging.classList.remove('dragging');
   const container = dragging.parentNode;
   if (!container) { render(); return; }
-  const newOrder = Array.from(container.querySelectorAll('.staging-card')).map(c => c.dataset.id);
+  const newOrder = Array.from(container.querySelectorAll('.staging-module')).map(c => c.dataset.id);
   const list = getStagingList();
   const byId = Object.fromEntries(list.map(p => [p.id, p]));
   const reordered = newOrder.map((id, i) => {
