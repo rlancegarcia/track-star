@@ -298,8 +298,8 @@
     display: flex; align-items: flex-start; gap: 24px;
     padding: 30px 0; cursor: grab;
   }
-  .staging-module:not(:last-child) { border-bottom: 2px dashed #ccc; }
   .staging-module.dragging { opacity: 0.4; cursor: grabbing; }
+  .staging-divider { border-bottom: 2px dashed #ccc; }
   body.view-only .staging-module { cursor: default; }
   .staging-module-number {
     font-size: 56px; font-weight: 800; font-family: 'Space Mono', monospace;
@@ -1702,7 +1702,7 @@ function renderStaging(app) {
               </div>
             </div>
           </div>`;
-        }).join('')}
+        }).join('<div class="staging-divider"></div>')}
       </div>
     `}
     <div style="text-align:center;padding:16px 0">
